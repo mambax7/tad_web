@@ -3,6 +3,7 @@ use Xmf\Request;
 use XoopsModules\Tadtools\FormValidator;
 use XoopsModules\Tadtools\Utility;
 use XoopsModules\Tad_web\Power;
+use XoopsModules\Tad_web\Tools as TadWebTools;
 use XoopsModules\Tad_web\WebCate;
 /*-----------引入檔案區--------------*/
 include_once 'header.php';
@@ -20,6 +21,31 @@ if (!empty($WebID)) {
 //權限設定
 $power = new Power($WebID);
 include_once XOOPS_ROOT_PATH . '/header.php';
+
+/*-----------執行動作判斷區----------*/
+$op = Request::getString('op');
+$ColName = Request::getString('ColName');
+$act = Request::getArray('act');
+$table = Request::getString('table');
+
+common_template($WebID, $web_all_config);
+
+switch ($op) {
+    case 'save_cate':
+        save_cate($WebID, $ColName, $act, $table);
+        clear_block_cache($WebID);
+        header("location:{$_SERVER['PHP_SELF']}?WebID={$WebID}&ColName={$ColName}");
+        exit;
+
+    default:
+        list_all_cate($WebID, $ColName, $table);
+        break;
+}
+
+/*-----------秀出結果區--------------*/
+include_once 'footer.php';
+include_once XOOPS_ROOT_PATH . '/footer.php';
+
 /*-----------function區--------------*/
 
 //分類設定
@@ -32,9 +58,9 @@ function list_all_cate($WebID = '', $ColName = '', $table = '')
 
     $WebCate = new WebCate($WebID, $ColName, $table);
     $WebCate->set_WebID($WebID);
-    $cate = $WebCate->get_tad_web_cate_arr(null, null, $ColName);
-
-    $cate_menu_form = $WebCate->cate_menu($CateID, 'form', true, false, true, false, false);
+    $cate = $WebCate->get_tad_web_cate_arr(true, null, $ColName);
+    // Utility::test($cate, 'cate', 'dd');
+    $cate_menu_form = $WebCate->cate_menu($cate['CateID'], 'form', true, false, true, false, false);
     $xoopsTpl->assign('cate_menu_form', $cate_menu_form);
 
     // Utility::dd($cate);
@@ -67,12 +93,9 @@ function list_all_cate($WebID = '', $ColName = '', $table = '')
     'AssistantID'=> '76',
     ),
     )*/
-    $default_class = get_web_config('default_class', $WebID);
-    $sql = 'select a.*,b.*,c.CateName from ' . $xoopsDB->prefix('tad_web_link_mems') . ' as a
-    left join ' . $xoopsDB->prefix('tad_web_mems') . ' as b on a.MemID=b.MemID
-    left join ' . $xoopsDB->prefix('tad_web_cate') . " as c on a.CateID=c.CateID
-    where a.WebID ='{$WebID}' and a.MemEnable='1' and a.CateID='{$default_class}'";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $default_class = TadWebTools::get_web_config('default_class', $WebID);
+    $sql = 'SELECT a.*, b.*, c.`CateName` FROM `' . $xoopsDB->prefix('tad_web_link_mems') . '` AS a LEFT JOIN `' . $xoopsDB->prefix('tad_web_mems') . '` AS b ON a.`MemID`=b.`MemID` LEFT JOIN `' . $xoopsDB->prefix('tad_web_cate') . '` AS c ON a.`CateID`=c.`CateID` WHERE a.`WebID`=? AND a.`MemEnable`=? AND a.`CateID`=?';
+    $result = Utility::query($sql, 'isi', [$WebID, '1', $default_class]) or Utility::web_error($sql, __FILE__, __LINE__);
     while ($all = $xoopsDB->fetchArray($result)) {
         $students[] = $all;
     }
@@ -134,27 +157,3 @@ function save_cate($WebID = '', $ColName = '', $act_arr = [], $table = '')
         }
     }
 }
-
-/*-----------執行動作判斷區----------*/
-$op = Request::getString('op');
-$ColName = Request::getString('ColName');
-$act = Request::getArray('act');
-$table = Request::getString('table');
-
-common_template($WebID, $web_all_config);
-
-switch ($op) {
-    case 'save_cate':
-        save_cate($WebID, $ColName, $act, $table);
-        clear_block_cache($WebID);
-        header("location:{$_SERVER['PHP_SELF']}?WebID={$WebID}&ColName={$ColName}");
-        exit;
-
-    default:
-        list_all_cate($WebID, $ColName, $table);
-        break;
-}
-
-/*-----------秀出結果區--------------*/
-include_once 'footer.php';
-include_once XOOPS_ROOT_PATH . '/footer.php';

@@ -1,6 +1,6 @@
 <{assign var="bc" value=$block.BlockContent}>
-<{if $bc.main_data}>
-    <{includeq file="$xoops_rootpath/modules/tad_web/templates/tad_web_block_title.tpl"}>
+<{if $bc.main_data|default:false}>
+    <{include file="$xoops_rootpath/modules/tad_web/templates/tad_web_block_title.tpl"}>
 
     <{if $bc.display=="thumb"}>
         <div style="clear: both;"></div>
@@ -16,9 +16,9 @@
                     <a href='video.php?WebID=<{$video.WebID}>&VideoID=<{$video.VideoID}>'><{$video.VideoName}></a>
                     <{*if $video.isMyWeb or $video.isAssistant*}>
                     <{*if $video.isCanEdit*}>
-                    <{if ($WebID && $isMyWeb) || $isAdmin || ($video.cate.CateID && $video.cate.CateID == $smarty.session.isAssistant.video)}>
-                        <a href="javascript:delete_video_func(<{$video.VideoID}>);" class="text-danger"><i class="fa fa-trash-o"></i><span class="sr-only visually-hidden">delete</span></a>
-                        <a href="video.php?WebID=<{$WebID}>&op=edit_form&VideoID=<{$video.VideoID}>"  class="text-warning"><i class="fa fa-pencil"></i><span class="sr-only visually-hidden">edit</span></a>
+                    <{if ($WebID && $isMyWeb) || $smarty.session.tad_web_adm|default:false || (isset($video.cate.CateID) && isset($smarty.session.isAssistant.video) && $video.cate.CateID == $smarty.session.isAssistant.video)}>
+                        <a href="javascript:delete_video_func(<{$video.VideoID}>);" class="text-danger"><i class="fa fa-trash"></i><span class="sr-only visually-hidden">delete</span></a>
+                        <a href="video.php?WebID=<{$WebID|default:''}>&op=edit_form&VideoID=<{$video.VideoID}>"  class="text-warning"><i class="fa fa-pencil"></i><span class="sr-only visually-hidden">edit</span></a>
                     <{/if}>
                 </div>
             </div>
@@ -48,13 +48,13 @@
                         <p>
                             <{$video.VideoDate}>
                             <{if isset($video.cate.CateID)}>
-                                <span class="badge badge-info"><a href="video.php?WebID=<{$video.WebID}>&CateID=<{$video.cate.CateID}>" style="color: #FFFFFF;"><{$video.cate.CateName}></a></span>
+                                <span class="badge badge-info bg-info"><a href="video.php?WebID=<{$video.WebID}>&CateID=<{$video.cate.CateID}>" style="color: #FFFFFF;"><{$video.cate.CateName}></a></span>
                             <{/if}>
                             <a href="video.php?WebID=<{$video.WebID}>&VideoID=<{$video.VideoID}>" style="font-size: 120%; margin-bottom: 10px;"><{$video.VideoName}></a>
                             <{*if $video.isMyWeb or $video.isAssistant*}>
                             <{*if $video.isCanEdit*}>
-                            <{if ($WebID && $isMyWeb) || $isAdmin || ($video.cate.CateID && $video.cate.CateID == $smarty.session.isAssistant.video)}>
-                                <a href="javascript:delete_video_func(<{$video.VideoID}>);" class="text-danger"><i class="fa fa-trash-o"></i><span class="sr-only visually-hidden">delete</span></a>
+                            <{if ($WebID && $isMyWeb) || $smarty.session.tad_web_adm|default:false || (isset($video.cate.CateID) && isset($smarty.session.isAssistant.video) && $video.cate.CateID == $smarty.session.isAssistant.video)}>
+                                <a href="javascript:delete_video_func(<{$video.VideoID}>);" class="text-danger"><i class="fa fa-trash"></i><span class="sr-only visually-hidden">delete</span></a>
                                 <a href="video.php?WebID=<{$video.WebID}>&op=edit_form&VideoID=<{$video.VideoID}>" class="text-warning"><i class="fa fa-pencil"></i><span class="sr-only visually-hidden">edit</span></a>
                             <{/if}>
                         </p>

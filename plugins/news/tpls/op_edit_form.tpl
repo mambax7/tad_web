@@ -1,16 +1,15 @@
-<script type="text/javascript" src="<{$xoops_url}>/modules/tadtools/My97DatePicker/WdatePicker.js"></script>
 <h2><{$smarty.const._MD_TCW_NEWS_ADD}></h2>
 
 <div class="my-border">
     <form action="news.php" method="post" id="myForm" enctype="multipart/form-data" role="form" class="form-horizontal">
 
         <!--分類-->
-        <{$cate_menu_form}>
+        <{$cate_menu_form|default:''}>
 
         <!--標題-->
         <div class="form-group row mb-3">
             <div class="col-md-12">
-                <input name="NewsTitle" id="NewsTitle" class="validate[required] form-control" type="text" value="<{$NewsTitle}>" placeholder="<{$smarty.const._MD_TCW_NEWSTITLE}>">
+                <input name="NewsTitle" id="NewsTitle" class="validate[required] form-control" type="text" value="<{$NewsTitle|default:''}>" placeholder="<{$smarty.const._MD_TCW_NEWSTITLE}>">
             </div>
         </div>
 
@@ -18,54 +17,54 @@
         <!--內容-->
         <div class="form-group row mb-3">
             <div class="col-md-12">
-                <{$NewsContent_editor}>
+                <{$NewsContent_editor|default:''}>
             </div>
         </div>
 
 
         <!--相關連結-->
         <div class="form-group row mb-3">
-            <label class="col-md-2 col-form-label text-sm-right control-label">
+            <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label">
                 <{$smarty.const._MD_TCW_NEWSURL}>
             </label>
             <div class="col-md-10">
-                <input type="text" name="NewsUrl" value="<{$NewsUrl}>" id="NewsUrl" class="form-control">
+                <input type="text" name="NewsUrl" value="<{$NewsUrl|default:''}>" id="NewsUrl" class="form-control">
             </div>
         </div>
 
 
         <div class="form-group row mb-3">
             <!--發布時間-->
-            <label class="col-md-2 col-form-label text-sm-right control-label">
+            <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label">
                 <{$smarty.const._MD_TCW_DISCUSSDATE}>
             </label>
             <div class="col-md-4">
-                <input type="text" name="NewsDate" value="<{$NewsDate}>" id="NewsDate" onClick="WdatePicker({dateFmt:'yyyy-MM-dd HH:mm' , startDate:'%y-%M-%d %H:%m}'})" class="form-control">
+                <input type="text" name="NewsDate" value="<{$NewsDate|default:''}>" id="NewsDate" onClick="WdatePicker({dateFmt:'yyyy-MM-dd HH:mm' , startDate:'%y-%M-%d %H:%m}'})" class="form-control">
             </div>
 
             <!--加到行事曆-->
-            <label class="col-md-2 col-form-label text-sm-right control-label">
+            <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label">
                 <{$smarty.const._MD_TCW_TOCAL}>
             </label>
             <div class="col-md-4">
-                <input type="text" name="toCal" value="<{$toCal}>" id="toCal" onClick="WdatePicker({dateFmt:'yyyy-MM-dd' , startDate:'%y-%M-%d}'})" class="form-control" placeholder="<{$smarty.const._MD_TCW_NEWS_TO_CAL}>">
+                <input type="text" name="toCal" value="<{$toCal|default:''}>" id="toCal" onClick="WdatePicker({dateFmt:'yyyy-MM-dd' , startDate:'%y-%M-%d}'})" class="form-control" placeholder="<{$smarty.const._MD_TCW_NEWS_TO_CAL}>">
             </div>
         </div>
 
-        <{$power_form}>
+        <{$power_form|default:''}>
 
-        <{$tags_form}>
+        <{$tags_form|default:''}>
 
         <!--相關附件-->
         <div class="form-group row mb-3">
-            <label class="col-md-2 col-form-label text-sm-right control-label">
+            <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label">
                 <{$smarty.const._MD_TCW_NEWS_FILES}>
             </label>
             <div class="col-md-4">
-                <{$upform}>
+                <{$upform|default:''}>
             </div>
 
-            <label class="col-md-2 col-form-label text-sm-right control-label">
+            <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label">
                 <{$smarty.const._MD_TCW_NEWS_ENABLE}>
             </label>
             <div class="col-md-4">
@@ -86,11 +85,11 @@
 
         <div class="text-center">
             <!--編號-->
-            <input type="hidden" name="NewsID" value="<{$NewsID}>">
-            <input type="hidden" name="WebID" value="<{$WebID}>">
-            <input type="hidden" name="uid" value="<{$uid}>">
-            <input type="hidden" name="op" value="<{$next_op}>">
-            <button type="submit" class="btn btn-primary"><{$smarty.const._TAD_SAVE}></button>
+            <input type="hidden" name="NewsID" value="<{$NewsID|default:''}>">
+            <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
+            <input type="hidden" name="uid" value="<{$uid|default:''}>">
+            <input type="hidden" name="op" value="<{$next_op|default:''}>">
+            <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-disk" aria-hidden="true"></i>  <{$smarty.const._TAD_SAVE}></button>
         </div>
     </form>
 </div>

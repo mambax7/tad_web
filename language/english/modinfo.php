@@ -23,14 +23,14 @@ define('_MI_TCW_ADMENU6', 'Notice');
 define('_MI_TCW_BNAME1', 'Page menu list');
 define('_MI_TCW_BDESC1', 'Lists all the individual pages of the menu');
 
-define('_MI_TCW_BNAME2', 'New discussions');
-define('_MI_TCW_BDESC2', 'New discussions');
+define('_MI_TCW_BNAME2', 'Sub-site menu');
+define('_MI_TCW_BDESC2', 'Sub-site menu');
 
 define('_MI_TCW_BNAME3', 'Events');
 define('_MI_TCW_BDESC3', 'Events Action');
 
-define('_MI_TCW_BNAME4', 'Menu');
-define('_MI_TCW_BDESC4', 'Menu');
+define('_MI_TCW_BNAME4', 'News');
+define('_MI_TCW_BDESC4', 'News');
 
 define('_MI_TCW_WEB_MODE_TITLE', 'Module Title');
 define('_MI_TCW_WEB_MODE_DESC', 'The title that display in module homepage.');

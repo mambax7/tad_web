@@ -1,7 +1,7 @@
 <{if $op=="config" or $op=="add_block"}>
     <script type="text/javascript">
         $(document).ready(function(){
-            $('#content_type').change(function(event) {
+            $('#content_type').on('change', function(event) {
                 var content_type=$('#content_type').val();
                 if(content_type=="js"){
                     $('#html_editor').hide();
@@ -23,7 +23,7 @@
     <h1 class="text-center"><{$block.BlockTitle}> <small><{$block.BlockName}></small></h2>
     <form action="block.php" method="post" enctype="multipart/form-data" role="form" class="form-horizontal myForm">
         <div class="form-group row mb-3">
-            <label class="col-md-3 col-form-label text-sm-right control-label ">
+            <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label ">
                 <{$smarty.const._MD_TCW_BLOCK_TITLE}>
             </label>
             <div class="col-md-9">
@@ -32,19 +32,19 @@
         </div>
 
         <div class="form-group row mb-3">
-            <label class="col-md-3 col-form-label text-sm-right control-label ">
+            <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label ">
                 <{$smarty.const._MD_TCW_BLOCK_SHOW_TITLE}>
             </label>
             <div class="col-md-9">
                 <div class="form-check form-check-inline radio-inline">
                     <label class="form-check-label" for="show_title1">
-                        <input class="form-check-input" id="show_title1" type="radio" name="config[show_title]" value="1" <{if $block.config.show_title!='0'}>checked<{/if}>>
+                        <input class="form-check-input" id="show_title1" type="radio" name="config[show_title]" value="1" <{if isset($block.config.show_title) && $block.config.show_title!='0'}>checked<{/if}>>
                         <{$smarty.const._YES}>
                     </label>
                 </div>
                 <div class="form-check form-check-inline radio-inline">
                     <label class="form-check-label" for="show_title0">
-                        <input class="form-check-input" id="show_title0" type="radio" name="config[show_title]" value="0" <{if $block.config.show_title=='0'}>checked<{/if}>>
+                        <input class="form-check-input" id="show_title0" type="radio" name="config[show_title]" value="0" <{if isset($block.config.show_title) && $block.config.show_title=='0'}>checked<{/if}>>
                         <{$smarty.const._NO}>
                     </label>
                 </div>
@@ -52,7 +52,7 @@
         </div>
 
         <div class="form-group row mb-3">
-            <label class="col-md-3 col-form-label text-sm-right control-label ">
+            <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label ">
                 <{$smarty.const._MD_TCW_BLOCK_ENABLE}>
             </label>
             <div class="col-md-9">
@@ -72,11 +72,11 @@
         </div>
 
         <div class="form-group row mb-3">
-            <label class="col-md-3 col-form-label text-sm-right control-label ">
+            <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label ">
                 <{$smarty.const._MD_TCW_BLOCK_POSITION}>
             </label>
             <div class="col-md-9">
-                <select name="BlockPosition" id="BlockPosition" class="form-control">
+                <select name="BlockPosition" id="BlockPosition" class="form-control form-select">
                     <option value="block1" <{if $block.BlockPosition=="block1"}>selected<{/if}>><{$smarty.const._MD_TCW_TOP_CENTER_BLOCK}></option>
                     <option value="block2" <{if $block.BlockPosition=="block2"}>selected<{/if}>><{$smarty.const._MD_TCW_TOP_LEFT_BLOCK}></option>
                     <option value="block3" <{if $block.BlockPosition=="block3"}>selected<{/if}>><{$smarty.const._MD_TCW_TOP_RIGHT_BLOCK}></option>
@@ -88,22 +88,22 @@
             </div>
         </div>
 
-        <{$power_form}>
+        <{$power_form|default:''}>
 
-        <{if $block_config_form}>
+        <{if $block_config_form|default:false}>
             <hr>
-            <{$block_config_form}>
+            <{$block_config_form|default:''}>
             <hr>
         <{/if}>
 
-        <{if $block.plugin=="custom" or $block.plugin=="share" or$op=="add_block"}>
+        <{if $block.plugin=="custom" or $block.plugin=="share" or $op=="add_block"}>
             <div class="form-group row mb-3">
-                <label class="col-md-3 col-form-label text-sm-right control-label ">
+                <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label ">
                     <{$smarty.const._MD_TCW_BLOCK_CONTENT}>
                     <{$block.config.content_type}>
                 </label>
                 <div class="col-md-9">
-                    <select name="config[content_type]" id="content_type" class="form-control">
+                    <select name="config[content_type]" id="content_type" class="form-control form-select">
                         <option value="html" <{if $block.config.content_type=="html"}>selected<{/if}>><{$smarty.const._MD_TCW_BLOCK_HTML}></option>
                         <option value="js" <{if $block.config.content_type=="js"}>selected<{/if}>><{$smarty.const._MD_TCW_BLOCK_JS}></option>
                         <option value="iframe" <{if $block.config.content_type=="iframe"}>selected<{/if}>><{$smarty.const._MD_TCW_BLOCK_IFRAME}></option>
@@ -112,12 +112,12 @@
             </div>
 
             <div id="html_editor" <{if $block.config.content_type!="html" and $block.config.content_type!=""}>style="display:none;"<{/if}>>
-                <{$editor}>
+                <{$editor|default:''}>
             </div>
 
             <div id="js_editor" <{if $block.config.content_type!="js"}>style="display:none;"<{/if}>>
                 <div class="form-group row mb-3">
-                    <label class="col-md-3 col-form-label text-sm-right control-label ">
+                    <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label ">
                         <{$smarty.const._MD_TCW_BLOCK_JS_DESC}>
                     </label>
                     <div class="col-md-9">
@@ -128,11 +128,11 @@
 
             <div id="iframe_editor" <{if $block.config.content_type!="iframe"}>style="display:none;"<{/if}>>
                 <div class="form-group row mb-3">
-                    <label class="col-md-3 col-form-label text-sm-right control-label ">
+                    <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label ">
                         <{$smarty.const._MD_TCW_BLOCK_IFRAME_DESC}>
                     </label>
                     <div class="col-md-9">
-                        <input type="text" name="BlockContent[iframe]"  class="form-control" placeholder="https://" value="<{$iframeContent}>">
+                        <input type="text" name="BlockContent[iframe]"  class="form-control" placeholder="https://" value="<{$iframeContent|default:''}>">
                     </div>
                 </div>
             </div>
@@ -141,7 +141,7 @@
                 <input type="hidden" name="BlockShare" value="0">
             <{else}>
                 <div class="form-group row mb-3">
-                    <label class="col-md-3 col-form-label text-sm-right control-label ">
+                    <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label ">
                         <{$smarty.const._MD_TCW_BLOCK_SHARE}>
                     </label>
                     <div class="col-md-9">
@@ -159,26 +159,26 @@
                         </div>
                     </div>
                 </div>
-                <input type="hidden" name="shareBlockID" value="<{$shareBlockID}>">
+                <input type="hidden" name="shareBlockID" value="<{$shareBlockID|default:''}>">
             <{/if}>
         <{/if}>
 
 
         <div class="text-center" stye="margin-top: 30px;">
-            <input type="hidden" name="WebID" value="<{$WebID}>">
+            <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
             <input type="hidden" name="ShareFrom" value="<{$block.ShareFrom}>">
             <input type="hidden" name="op" value="save_block_config">
             <input type="hidden" name="BlockName" value="<{$block.BlockName}>">
             <input type="hidden" name="BlockID" value="<{$block.BlockID}>">
             <{if $block.plugin=="custom" or $block.BlockCopy!="0"}>
-                <a href="javascript:delete_block_func('<{$block.BlockID}>');" class="btn btn-danger"><{$smarty.const._TAD_DEL}></a>
+                <a href="javascript:delete_block_func('<{$block.BlockID}>');" class="btn btn-danger"><i class="fa fa-trash" aria-hidden="true"></i> <{$smarty.const._TAD_DEL}></a>
             <{/if}>
-            <button type="submit" class="btn btn-primary"><{$smarty.const._TAD_SAVE}></button>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-disk" aria-hidden="true"></i>  <{$smarty.const._TAD_SAVE}></button>
         </div>
     </form>
 
-    <{if $use_share_web}>
-        <h3><{$shareBlockCount}></h3>
+    <{if $use_share_web && $use_share_web|is_array}>
+        <h3><{$shareBlockCount|default:''}></h3>
         <div class="alert alert-info">
             <ul>
                 <{foreach from=$use_share_web item=web}>
@@ -231,7 +231,7 @@
 
                     console.log(ui.item);
 
-                    $.post("save_block.php", {op:'save_position', WebID: "<{$WebID}>", PositionName: position, BlockID: block_id, plugin: ui.item.attr("data-original-title"), order_arr: order}, function(data) {
+                    $.post("save_block.php", {op:'save_position', WebID: "<{$WebID|default:''}>", PositionName: position, BlockID: block_id, plugin: ui.item.attr("data-original-title"), order_arr: order}, function(data) {
                         if(!isNaN(data)){
                             // location.reload();
                             var new_block_id =data;
@@ -244,7 +244,7 @@
 
                         if(position!="uninstall"){
                             $("#"+block_id).css('display','');
-                            $("#"+block_id).append('<span id="blktool_'+block_id+'"><a href="block.php?WebID=<{$WebID}>&op=config&plugin='+new_block_plugin+'&BlockID='+new_block_id+'" class="pull-right float-right pull-end text-danger"><i class="fa fa-pencil"></i><span class="sr-only visually-hidden">edit</span></a></span>');
+                            $("#"+block_id).append('<span id="blktool_'+block_id+'"><a href="block.php?WebID=<{$WebID|default:''}>&op=config&plugin='+new_block_plugin+'&BlockID='+new_block_id+'" class="pull-right float-right pull-end text-danger"><i class="fa fa-pencil"></i><span class="sr-only visually-hidden">edit</span></a></span>');
                             $("#"+block_id+"_icon").attr('src','images/show1.gif');
 
                             if(chang_id){
@@ -266,7 +266,7 @@
                     var order = $(this).sortable('toArray', {attribute: 'id'});
                     var block_id = ui.item.attr("id");
 
-                    $.post("save_block.php", {op:'save_sort', WebID: "<{$WebID}>", PositionName: position, BlockID: block_id, plugin: ui.item.attr("data-original-title"), order_arr: order}, function(data) {
+                    $.post("save_block.php", {op:'save_sort', WebID: "<{$WebID|default:''}>", PositionName: position, BlockID: block_id, plugin: ui.item.attr("data-original-title"), order_arr: order}, function(data) {
                         $("#msg").html(data);
                     });
                 }
@@ -281,7 +281,7 @@
             }else{
                 status=1;
             }
-            $.post("save_block.php", {op:'save_enable', WebID: "<{$WebID}>", BlockEnable: status, BlockID: BlockID}, function(data) {
+            $.post("save_block.php", {op:'save_enable', WebID: "<{$WebID|default:''}>", BlockEnable: status, BlockID: BlockID}, function(data) {
                 $("#msg").html(data);
                 $(img_id).attr("src","images/show"+status+".gif");
                 $(img_id).attr("title",status);
@@ -294,22 +294,21 @@
             <h2><{$smarty.const._MD_TCW_BLOCK_TOOLS}></h2>
         </div>
         <div class="col-md-6 text-right text-end">
-            <a href="block.php?WebID=<{$WebID}>&op=add_block" class="btn btn-primary"><{$smarty.const._MD_TCW_BLOCK_ADD}></a>
+            <a href="block.php?WebID=<{$WebID|default:''}>&op=add_block" class="btn btn-primary"><{$smarty.const._MD_TCW_BLOCK_ADD}></a>
         </div>
     </div>
 
-
-    <{if $uninstall}>
+    <{if $uninstall && $uninstall|is_array}>
         <div id="uninstall" class="alert alert-danger">
             <div class="text-danger text-center" style="font-size: 2em; opacity: 0.4; filter: alpha(opacity=40); margin-top: -10px;"><{$smarty.const._MD_TCW_UNINSTALL_BLOCK}></div>
             <ul id="sort_uninstall" class="connectedSortable">
                 <{foreach from=$uninstall item=block}>
                     <li id="<{$block.BlockID}>" data-toggle="tooltip" title="<{if $block.BlockShare=="1"}>share<{elseif $block.plugin=="custom"}>custom<{else}><{$block.plugin}><{/if}>" class="ui-state-highlight <{if $block.BlockShare=="1"}>share_block<{elseif $block.plugin=="custom"}>custom_block<{/if}>" style="display: inline-block;">
                         <{$block.icon}>
-                        <{if $block.BlockTitle}>
-                            <a href="block.php?WebID=<{$WebID}>&op=demo&BlockID=<{$block.BlockID}>" class="edit_block" data-fancybox-type="iframe"><{$block.BlockTitle}></a>
+                        <{if $block.BlockTitle|default:false}>
+                            <a href="block.php?WebID=<{$WebID|default:''}>&op=demo&BlockID=<{$block.BlockID}>" class="edit_block" data-fancybox-type="iframe"><{$block.BlockTitle}></a>
                         <{else}>
-                            <a href="block.php?WebID=<{$WebID}>&op=demo&BlockID=<{$block.BlockID}>" class="edit_block" data-fancybox-type="iframe"><{$block.BlockID}></a>
+                            <a href="block.php?WebID=<{$WebID|default:''}>&op=demo&BlockID=<{$block.BlockID}>" class="edit_block" data-fancybox-type="iframe"><{$block.BlockID}></a>
                         <{/if}>
                     </li>
                 <{/foreach}>
@@ -325,9 +324,9 @@
                 <div id="side" class="alert alert-success" style="min-height: 300px;">
                     <div class="text-success text-center" style="font-size: 2em; opacity: 0.4; filter: alpha(opacity=40); margin-top: -10px;"><{$smarty.const._MD_TCW_SIDE_BLOCK}></div>
                     <ul id="sort_side" class="connectedSortable">
-                        <{if $side}>
+                        <{if $side && $side|is_array}>
                             <{foreach from=$side item=block}>
-                                <{includeq file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
+                                <{include file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
                             <{/foreach}>
                         <{/if}>
                     </ul>
@@ -339,9 +338,9 @@
             <div id="block1" class="alert alert-info" style="min-height: 100px;">
                 <div class="text-info text-center" style="font-size: 2em; opacity: 0.4; filter: alpha(opacity=40); margin-top: -10px;"><{$smarty.const._MD_TCW_TOP_CENTER_BLOCK}></div>
                 <ul id="sort_block1" class="connectedSortable">
-                    <{if $block1}>
+                    <{if $block1 && $block1|is_array}>
                         <{foreach from=$block1 item=block}>
-                            <{includeq file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
+                            <{include file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
                         <{/foreach}>
                     <{/if}>
                 </ul>
@@ -352,9 +351,9 @@
                     <div id="block2" class="alert alert-info" style="min-height: 100px;">
                         <div class="text-info text-center" style="font-size: 2em; opacity: 0.4; filter: alpha(opacity=40); margin-top: -10px;"><{$smarty.const._MD_TCW_TOP_LEFT_BLOCK}></div>
                         <ul id="sort_block2" class="connectedSortable">
-                            <{if $block2}>
+                            <{if $block2 && $block2|is_array}>
                                 <{foreach from=$block2 item=block}>
-                                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
+                                    <{include file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
                                 <{/foreach}>
                             <{/if}>
                         </ul>
@@ -364,9 +363,9 @@
                     <div id="block3" class="alert alert-info" style="min-height: 100px;">
                         <div class="text-info text-center" style="font-size: 2em; opacity: 0.4; filter: alpha(opacity=40); margin-top: -10px;"><{$smarty.const._MD_TCW_TOP_RIGHT_BLOCK}></div>
                         <ul id="sort_block3" class="connectedSortable">
-                            <{if $block3}>
+                            <{if $block3 && $block3|is_array}>
                                 <{foreach from=$block3 item=block}>
-                                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
+                                    <{include file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
                                 <{/foreach}>
                             <{/if}>
                         </ul>
@@ -377,9 +376,9 @@
             <div id="block4" class="alert alert-info" style="min-height: 100px;">
                 <div class="text-info text-center" style="font-size: 2em; opacity: 0.4; filter: alpha(opacity=40); margin-top: -10px;"><{$smarty.const._MD_TCW_BOTTOM_CENTER_BLOCK}></div>
                 <ul id="sort_block4" class="connectedSortable">
-                    <{if $block4}>
+                    <{if $block4 && $block4|is_array}>
                         <{foreach from=$block4 item=block}>
-                            <{includeq file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
+                            <{include file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
                         <{/foreach}>
                     <{/if}>
                 </ul>
@@ -390,9 +389,9 @@
                     <div id="block5" class="alert alert-info" style="min-height: 100px;">
                         <div class="text-info text-center" style="font-size: 2em; opacity: 0.4; filter: alpha(opacity=40); margin-top: -10px;"><{$smarty.const._MD_TCW_BOTTOM_LEFT_BLOCK}></div>
                         <ul id="sort_block5" class="connectedSortable">
-                            <{if $block5}>
+                            <{if $block5 && $block5|is_array}>
                                 <{foreach from=$block5 item=block}>
-                                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
+                                    <{include file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
                                 <{/foreach}>
                             <{/if}>
                         </ul>
@@ -402,9 +401,9 @@
                     <div id="block6" class="alert alert-info" style="min-height: 100px;">
                         <div class="text-info text-center" style="font-size: 2em; opacity: 0.4; filter: alpha(opacity=40); margin-top: -10px;"><{$smarty.const._MD_TCW_BOTTOM_RIGHT_BLOCK}></div>
                         <ul id="sort_block6" class="connectedSortable">
-                            <{if $block6}>
+                            <{if $block6 && $block6|is_array}>
                                 <{foreach from=$block6 item=block}>
-                                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
+                                    <{include file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
                                 <{/foreach}>
                             <{/if}>
                         </ul>
@@ -418,9 +417,9 @@
                 <div id="side" class="alert alert-success" style="min-height: 300px;">
                     <div class="text-success text-center" style="font-size: 2em; opacity: 0.4; filter: alpha(opacity=40); margin-top: -10px;"><{$smarty.const._MD_TCW_SIDE_BLOCK}></div>
                         <ul id="sort_side" class="connectedSortable">
-                            <{if $side}>
+                            <{if $side && $side|is_array}>
                                 <{foreach from=$side item=block}>
-                                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
+                                    <{include file="$xoops_rootpath/modules/tad_web/templates/sub_block_item.tpl"}>
                                 <{/foreach}>
                             <{/if}>
                         </ul>
@@ -434,32 +433,32 @@
 
     <form action="block.php" method="post" enctype="multipart/form-data" role="form">
         <div class="form-group row mb-3">
-            <label class="col-md-2 col-form-label text-sm-right control-label ">
+            <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label ">
                 <{$smarty.const._MD_TCW_BLOCK_PIC_COLOR}>
             </label>
             <div class="col-md-3">
-                <input type="text" name="block_pic[block_pic_text_color]" value="<{$block_pic_text_color}>" class="form-control color" value="<{$block_pic_text_color}>" id="block_pic_text_color" data-text="true" data-hex="true" style="width:120px; display: inline-block;">
+                <input type="text" name="block_pic[block_pic_text_color]" value="<{$block_pic_text_color|default:''}>" class="form-control color" value="<{$block_pic_text_color|default:''}>" id="block_pic_text_color" data-text="true" data-hex="true" style="width:120px; display: inline-block;">
             </div>
-            <label class="col-md-2 col-form-label text-sm-right control-label ">
+            <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label ">
                 <{$smarty.const._MD_TCW_BLOCK_PIC_BORDER_COLOR}>
             </label>
             <div class="col-md-3">
-                <input type="text" name="block_pic[block_pic_border_color]" value="<{$block_pic_border_color}>" class="form-control color" value="<{$block_pic_border_color}>" id="block_pic_border_color" data-text="true" data-hex="true" style="width:120px; display: inline-block;">
+                <input type="text" name="block_pic[block_pic_border_color]" value="<{$block_pic_border_color|default:''}>" class="form-control color" value="<{$block_pic_border_color|default:''}>" id="block_pic_border_color" data-text="true" data-hex="true" style="width:120px; display: inline-block;">
             </div>
         </div>
 
         <div class="form-group row mb-3">
-            <label class="col-md-2 col-form-label text-sm-right control-label ">
+            <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label ">
                 <{$smarty.const._MD_TCW_BLOCK_PIC_SIZE}>
             </label>
             <div class="col-md-3">
-                <input type="text" name="block_pic[block_pic_text_size]" value="<{$block_pic_text_size}>" class="form-control">
+                <input type="text" name="block_pic[block_pic_text_size]" value="<{$block_pic_text_size|default:''}>" class="form-control">
             </div>
-            <label class="col-md-2 col-form-label text-sm-right control-label ">
+            <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label ">
                 <{$smarty.const._MD_TCW_BLOCK_PIC_FONT}>
             </label>
             <div class="col-md-3">
-                <select name="block_pic[block_pic_font]" class="form-control">
+                <select name="block_pic[block_pic_font]" class="form-control form-select">
                     <option value="font.ttf" <{if $block_pic_font!='font.ttf'}>selected<{/if}>><{$smarty.const._MD_TCW_BLOCK_PIC_FONT1}></option>
                     <option value="DroidSansFallback.ttf" <{if $block_pic_font!='font.ttf'}>selected<{/if}>>DroidSansFallback<{$smarty.const._MD_TCW_BLOCK_PIC_FONT2}></option>
                 </select>
@@ -476,9 +475,9 @@
         </div>
 
         <div class="text-center" stye="margin-top: 30px;">
-            <input type="hidden" name="WebID" value="<{$WebID}>">
+            <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
             <input type="hidden" name="op" value="mk_block_pic">
-            <button type="submit" class="btn btn-primary"><{$smarty.const._TAD_SAVE}></button>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-disk" aria-hidden="true"></i>  <{$smarty.const._TAD_SAVE}></button>
         </div>
     </form>
 <{/if}>

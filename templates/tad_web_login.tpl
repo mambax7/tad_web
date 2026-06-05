@@ -28,11 +28,11 @@
 <nav id="c-menu--slide-right" class="c-menu c-menu--slide-right">
     <button class="c-menu__close"><{$smarty.const._MD_TCW_WEB_CLOSE_MENU}> &rarr;</button>
     <div style="margin-left:10px;">
-        <{if $LoginMemNickName==""}>
+        <{if $LoginMemNickName|default:''==""}>
             <script type="text/javascript">
                 $(document).ready(function() {
 
-                    $("#login_method").change(function(event) {
+                    $("#login_method").on('change', function(event) {
                     var opt=$("#login_method").val();
                     if(opt=="openid_login"){
                         $("#openid_login").show();
@@ -60,7 +60,7 @@
                     }
                     });
 
-                    $("#select_mems").change(function(event) {
+                    $("#select_mems").on('change', function(event) {
                     if($("#select_mems").val()!=''){
                         $('#parent_login_div').show();
                     }else{
@@ -71,12 +71,12 @@
             </script>
 
             <div class="my-border">
-                <select id="login_method" class="form-control" style="margin-bottom: 10px;" title="search">
+                <select id="login_method" class="form-control form-select" style="margin-bottom: 10px;" title="search">
                     <{if $openid=='1'}>
                     <option value="openid_login"><{$smarty.const._MD_TCW_LOGIN_BY_OPENID}></option>
                     <{/if}>
                     <option value="xoops_login"><{$smarty.const._MD_TCW_LOGIN_BY_XOOPS}></option>
-                    <option value="student_login"><{$student_title}><{$smarty.const._MD_TCW_LOGIN_BY_MEM}></option>
+                    <option value="student_login"><{$student_title|default:''}><{$smarty.const._MD_TCW_LOGIN_BY_MEM}></option>
                     <{if $mem_parents=='1'}>
                     <option value="parent_login"><{$smarty.const._MD_TCW_LOGIN_BY_PARENTS}></option>
                     <{/if}>
@@ -84,7 +84,7 @@
 
                 <form action="<{$xoops_url}>/user.php" method="post" role="form" id="xoops_login" <{if $openid=='1'}>style="display: none;"<{/if}>>
                     <div class="form-group row mb-3">
-                        <label class="col-md-4 col-form-label text-sm-right control-label" for="uname">
+                        <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label" for="uname">
                             <{$smarty.const._MD_TCW_ID}>
                         </label>
                         <div class="col-md-8">
@@ -93,7 +93,7 @@
                     </div>
 
                     <div class="form-group row mb-3">
-                        <label class="col-md-4 col-form-label text-sm-right control-label" for="pass">
+                        <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label" for="pass">
                             <{$smarty.const._MD_TCW_PASSWD}>
                         </label>
                         <div class="col-md-8">
@@ -102,41 +102,41 @@
                     </div>
 
                     <div class="form-group row mb-3">
-                        <label class="col-md-4 col-form-label text-sm-right control-label">
+                        <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label">
                         </label>
                         <div class="col-md-8 d-grid gap-2">
-                            <input type="hidden" name="xoops_redirect" value="<{$xoops_requesturi}>">
+                            <input type="hidden" name="xoops_redirect" value="<{$xoops_requesturi|default:''}>">
                             <input type="hidden" name="rememberme" value="On">
                             <input type="hidden" name="op" value="login">
                             <button type="submit" class="btn btn-primary btn-block"><{$smarty.const.TF_USER_ENTER}></button>
                         </div>
                     </div>
-                    <p><a href="<{$xoops_url}>/user.php?op=logout&xoops_redirect=<{$xoops_requesturi}>" class="btn btn-sm btn-danger">若無法看見「網站擁有者 OpenID 登入」請按此登出，再登入即可</a></p>
+                    <p><a href="<{$xoops_url}>/user.php?op=logout&xoops_redirect=<{$xoops_requesturi|urlencode}>" class="btn btn-sm btn-danger">若無法看見「網站擁有者 OpenID 登入」請按此登出，再登入即可</a></p>
                 </form>
 
                 <form action="aboutus.php" method="post" enctype="multipart/form-data" role="form" id="student_login" style="display: none;">
                     <div class="form-group row mb-3">
-                        <label class="col-md-4 col-form-label text-sm-right control-label">
-                            <{$student_title}><{$smarty.const._MD_TCW_ID}>
+                        <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label">
+                            <{$student_title|default:''}><{$smarty.const._MD_TCW_ID}>
                         </label>
                         <div class="col-md-8 controls">
-                            <input class="form-control" type="text" name="MemUname" title="<{$smarty.const._MD_TCW_PLEASE_INPUT}><{$student_title}><{$smarty.const._MD_TCW_ID}>" placeholder="<{$smarty.const._MD_TCW_PLEASE_INPUT}><{$student_title}><{$smarty.const._MD_TCW_ID}>">
+                            <input class="form-control" type="text" name="MemUname" title="<{$smarty.const._MD_TCW_PLEASE_INPUT}><{$student_title|default:''}><{$smarty.const._MD_TCW_ID}>" placeholder="<{$smarty.const._MD_TCW_PLEASE_INPUT}><{$student_title|default:''}><{$smarty.const._MD_TCW_ID}>">
                         </div>
                     </div>
                     <div class="form-group row mb-3">
-                        <label class="col-md-4 col-form-label text-sm-right control-label">
-                            <{$student_title}><{$smarty.const._MD_TCW_PASSWD}>
+                        <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label">
+                            <{$student_title|default:''}><{$smarty.const._MD_TCW_PASSWD}>
                         </label>
                         <div class="col-md-8 controls">
-                            <input class="form-control" type="password" name="MemPasswd" title="<{$smarty.const._MD_TCW_PLEASE_INPUT}><{$student_title}><{$smarty.const._MD_TCW_PASSWD}>" placeholder="<{$smarty.const._MD_TCW_PLEASE_INPUT}><{$student_title}><{$smarty.const._MD_TCW_PASSWD}>">
+                            <input class="form-control" type="password" name="MemPasswd" title="<{$smarty.const._MD_TCW_PLEASE_INPUT}><{$student_title|default:''}><{$smarty.const._MD_TCW_PASSWD}>" placeholder="<{$smarty.const._MD_TCW_PLEASE_INPUT}><{$student_title|default:''}><{$smarty.const._MD_TCW_PASSWD}>">
                         </div>
                     </div>
 
                     <div class="form-group row mb-3">
-                        <label class="col-md-4 col-form-label text-sm-right control-label">
+                        <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label">
                         </label>
                         <div class="col-md-8 d-grid gap-2">
-                            <input type="hidden" name="WebID" value="<{$WebID}>">
+                            <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
                             <input type="hidden" name="op" value="mem_login">
                             <button type="submit" class="btn btn-success btn-block"><{$smarty.const._MD_TCW_LOGIN}></button>
                         </div>
@@ -148,20 +148,20 @@
                         <label class="sr-only visually-hidden">
                         </label>
                         <div class="col-md-12 controls">
-                            <{$login_cate_menu}>
+                            <{$login_cate_menu|default:''}>
                         </div>
                     </div>
                     <div class="form-group row mb-3">
                         <label class="sr-only visually-hidden">
                         </label>
                         <div class="col-md-12 controls">
-                            <select name='MemID' id='select_mems' title='select mems' class='form-control' style="display:none;"></select>
+                            <select name='MemID' id='select_mems' title='select mems' class='form-control form-select' style="display:none;"></select>
                         </div>
                     </div>
 
                     <div id="parent_login_div" style="display:none;">
                         <div class="form-group row mb-3">
-                            <label class="col-md-3 col-form-label text-sm-right control-label">
+                            <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label">
                                 <{$smarty.const._MD_TCW_PASSWD}>
                             </label>
                             <div class="col-md-9 controls">
@@ -173,7 +173,7 @@
                             <label class="sr-only visually-hidden">
                             </label>
                             <div class="col-md-12 d-grid gap-2">
-                                <input type="hidden" name="WebID" value="<{$WebID}>">
+                                <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
                                 <input type="hidden" name="op" value="parent_login">
                                 <button type="submit" class="btn btn-success btn-block"><{$smarty.const._MD_TCW_LOGIN}></button>
                             </div>
@@ -182,9 +182,9 @@
 
                     <{if $mem_parents=='1'}>
                         <div class="text-center">
-                            <a href="aboutus.php?WebID=<{$WebID}>&op=forget_parent_passwd"><{$smarty.const._MD_TCW_FORGET_PARENTS_PASSWD}></a>
+                            <a href="aboutus.php?WebID=<{$WebID|default:''}>&op=forget_parent_passwd"><{$smarty.const._MD_TCW_FORGET_PARENTS_PASSWD}></a>
                             |
-                            <a href="aboutus.php?WebID=<{$WebID}>&op=parents_account"><{$smarty.const._MD_TCW_REGIST_BY_PARENTS}></a>
+                            <a href="aboutus.php?WebID=<{$WebID|default:''}>&op=parents_account"><{$smarty.const._MD_TCW_REGIST_BY_PARENTS}></a>
                         </div>
                     <{/if}>
                 </form>
@@ -197,6 +197,11 @@
                         </a>
                     <{/foreach}>
                     </div>
+                    <{if $_IS_EZCLASS|default:false}>
+                        <div class="alert alert-warning">
+                            若登入有問題，請參考：<a href="https://class.tn.edu.tw/modules/tadnews/index.php?ncsn=1&nsn=22" target="_blank">無法登入管理網站之處理方法</a>
+                        </div>
+                    <{/if}>
                 <{/if}>
             </div>
         <{/if}>

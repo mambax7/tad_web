@@ -28,7 +28,7 @@
                         <td><{$plugin.dirname}></td>
                         <td><{$plugin.config.name}></td>
                         <td>
-                            <input type="text" name="plugin_name[<{$plugin.dirname}>]" value="<{if $plugin.db.PluginTitle}><{$plugin.db.PluginTitle}><{else}><{$plugin.config.name}><{/if}>" class="form-control" style="width: 120px;">
+                            <input type="text" name="plugin_name[<{$plugin.dirname}>]" value="<{if $plugin.db.PluginTitle|default:false}><{$plugin.db.PluginTitle}><{else}><{$plugin.config.name}><{/if}>" class="form-control" style="width: 120px;">
                         </td>
                         <td>
                             <{if $plugin.config.common==1}>
@@ -39,7 +39,7 @@
                         </td>
                         <td>
                             <{if $plugin.config.limit!=''}>
-                                <input type="text" name="plugin_limit[<{$plugin.dirname}>]" value="<{if $plugin.limit}><{$plugin.limit}><{else}><{$plugin.config.limit}><{/if}>" class="form-control" style="width: 50px;">
+                                <input type="text" name="plugin_limit[<{$plugin.dirname}>]" value="<{if $plugin.limit|default:false}><{$plugin.limit}><{else}><{$plugin.config.limit}><{/if}>" class="form-control" style="width: 50px;">
                             <{else}>
                                 <input type="hidden" name="plugin_limit[<{$plugin.dirname}>]" value="none">
                             <{/if}>
@@ -51,7 +51,7 @@
 
         <div class="text-center">
             <input type="hidden" name="op" value="save_plugins">
-            <button type="submit" class="btn btn-primary"><{$smarty.const._TAD_SAVE}></button>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-disk" aria-hidden="true"></i>  <{$smarty.const._TAD_SAVE}></button>
         </div>
     </form>
 </div>

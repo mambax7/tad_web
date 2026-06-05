@@ -2,26 +2,67 @@
 use Xmf\Request;
 use XoopsModules\Tadtools\Utility;
 use XoopsModules\Tadtools\Ztree;
+use XoopsModules\Tad_web\Tools as TadWebTools;
 
 /*-----------引入檔案區--------------*/
 $xoopsOption['template_main'] = 'tad_web_adm_disk.tpl';
 require_once __DIR__ . '/header.php';
 require_once dirname(__DIR__) . '/function.php';
 require_once dirname(__DIR__) . '/class/WebCate.php';
+
+/*-----------執行動作判斷區----------*/
+$op = Request::getString('op');
+$WebID = Request::getInt('WebID');
+$CateID = Request::getInt('CateID');
+$g2p = Request::getInt('g2p', 1);
+
+$xoopsTpl->assign('op', $op);
+
+switch ($op) {
+
+    //重新計算空間
+    case 'check_quota':
+        check_quota($WebID);
+        header("location: {$_SERVER['PHP_SELF']}?WebID=$WebID&g2p=$g2p");
+        exit;
+
+    case 'view_file':
+        view_file($WebID);
+        break;
+
+    case 'save_disk_setup':
+        save_disk_setup();
+        header("location: {$_SERVER['PHP_SELF']}?g2p=$g2p");
+        exit;
+
+    //預設動作
+    default:
+        list_all_web($WebID);
+        break;
+
+}
+
+/*-----------秀出結果區--------------*/
+require_once __DIR__ . '/footer.php';
+
 /*-----------function區--------------*/
 
 //取得所有班級
-function list_all_web($defCateID = '')
+function list_all_web($defWebID = '')
 {
     global $xoopsDB, $xoopsTpl, $xoopsModuleConfig;
 
-    $sql = 'SELECT * FROM ' . $xoopsDB->prefix('tad_web') . '  ORDER BY used_size DESC';
+    if ($defWebID) {
+        $sql = "SELECT * FROM " . $xoopsDB->prefix('tad_web') . " where WebID='$defWebID'";
+    } else {
+        $sql = 'SELECT * FROM ' . $xoopsDB->prefix('tad_web') . '  ORDER BY used_size DESC';
 
-    //getPageBar($原sql語法, 每頁顯示幾筆資料, 最多顯示幾個頁數選項);
-    $PageBar = Utility::getPageBar($sql, 50, 10);
-    $bar = $PageBar['bar'];
-    $sql = $PageBar['sql'];
-    $total = $PageBar['total'];
+        //getPageBar($原sql語法, 每頁顯示幾筆資料, 最多顯示幾個頁數選項);
+        $PageBar = Utility::getPageBar($sql, 50, 10);
+        $bar = $PageBar['bar'];
+        $sql = $PageBar['sql'];
+        $total = $PageBar['total'];
+    }
 
     $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
     $_SESSION['quota'] = '';
@@ -32,13 +73,18 @@ function list_all_web($defCateID = '')
     while (false !== ($all = $xoopsDB->fetchArray($result))) {
         //以下會產生這些變數： $WebID , $WebName , $WebSort , $WebEnable , $WebCounter
         $WebID = $all['WebID'];
-        $dir_size = $all['used_size'];
+        if (_IS_EZCLASS) {
+            $used_size = redis_do($WebID, 'get', '', 'used_size');
+            $dir_size = $used_size;
+        } else {
+            $dir_size = $all['used_size'];
+        }
         // $dir_size = get_dir_size("{$dir}{$WebID}/");
 
         $data[$WebID] = $all;
         $size = size2mb($dir_size);
 
-        $space_quota = get_web_config('space_quota', $WebID);
+        $space_quota = TadWebTools::get_web_config('space_quota', $WebID);
         $user_space_quota = (empty($space_quota) or 'default' === $space_quota) ? $user_default_quota : (int) $space_quota;
 
         $data[$WebID]['space_quota'] = $user_space_quota;
@@ -73,8 +119,8 @@ function list_all_web($defCateID = '')
 function get_all_dir_size()
 {
     global $xoopsDB;
-    $sql = 'SELECT sum(`used_size`) FROM ' . $xoopsDB->prefix('tad_web') . ' ';
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'SELECT SUM(`used_size`) FROM `' . $xoopsDB->prefix('tad_web') . '`';
+    $result = Utility::query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
     list($used_size) = $xoopsDB->fetchRow($result);
 
     return $used_size;
@@ -184,38 +230,9 @@ function dirToArray($dir)
 
 function save_disk_setup()
 {
-    global $xoopsDB, $xoopsTpl, $xoopsModuleConfig;
+    global $xoopsModuleConfig;
     foreach ($_POST['space_quota'] as $WebID => $user_space_quota) {
         $space_quota = ($user_space_quota == $xoopsModuleConfig['user_space_quota']) ? 'default' : (int) $user_space_quota;
         save_web_config('space_quota', $space_quota, $WebID);
     }
 }
-
-/*-----------執行動作判斷區----------*/
-$op = Request::getString('op');
-$WebID = Request::getInt('WebID');
-$CateID = Request::getInt('CateID');
-
-$xoopsTpl->assign('op', $op);
-
-switch ($op) {
-    /*---判斷動作請貼在下方---*/
-
-    case 'view_file':
-        view_file($WebID);
-        break;
-
-    case 'save_disk_setup':
-        save_disk_setup();
-        header("location: {$_SERVER['PHP_SELF']}");
-        exit;
-
-    //預設動作
-    default:
-        list_all_web($CateID);
-        break;
-        /*---判斷動作請貼在上方---*/
-}
-
-/*-----------秀出結果區--------------*/
-require_once __DIR__ . '/footer.php';

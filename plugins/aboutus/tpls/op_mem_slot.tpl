@@ -1,5 +1,5 @@
 <h2><{$cate.CateName}><{$smarty.const._MD_TCW_ABOUTUS_SLOT}></h2>
-<{if $all_mems}>
+<{if $all_mems|default:false}>
     <style type="text/css" media="screen">
         #slot td{
             width: 60px;
@@ -19,7 +19,7 @@
         function random_mem(i,max,times){
             // $('#log').html('');
             i=parseInt(i);
-            var max=<{$mem_total}>;
+            var max=<{$mem_total|default:''}>;
             var random=Math.random();
             var max_random=random * max;
             var end = Math.floor(max_random);
@@ -37,9 +37,9 @@
             }
 
             if(all_times > counter){
-                if(counter < <{$speed1}>){
+                if(counter < <{$speed1|default:''}>){
                 speed=100;
-                }else if(counter >= <{$speed1}> && counter < <{$speed2}>){
+                }else if(counter >= <{$speed1|default:''}> && counter < <{$speed2|default:''}>){
                 speed=50;
                 }else if(left<=3){
                 speed=200;
@@ -83,17 +83,17 @@
                     <td id="td_<{$stud.slot_sort}>" title="<{$stud.slot_sort}>" <{if $stud.sort==1}>class="slot_active"<{/if}>>
                         <div style="width: 60px; height: 60px; margin:2px auto; background: transparent url('<{$stud.pic}>') top center no-repeat; <{$stud.cover}> padding: 0px;"></div>
                         <div>
-                            <{if $isMyWeb}>
+                            <{if $isMyWeb|default:false}>
                                 <{$stud.MemNum}>
-                                <a href="aboutus.php?WebID=<{$WebID}>&CateID=<{$cate.CateID}>&MemID=<{$stud.MemID}>&op=show_stu"><{$stud.MemName}></a>
+                                <a href="aboutus.php?WebID=<{$WebID|default:''}>&CateID=<{$cate.CateID}>&MemID=<{$stud.MemID}>&op=show_stu"><{$stud.MemName}></a>
                             <{else}>
                                 <{$stud.MemName}>
                             <{/if}>
                         </div>
                     </td>
                     <{if $row ==2 and $i==1 and $span_num > 0}>
-                        <td colspan=<{$span_num}> rowspan=<{$span_num}> >
-                            <a href="javascript:random_mem($('.slot_active').attr('title'),<{$mem_total}>,<{$times}>);" class="btn btn-primary"><{$smarty.const._MD_TCW_ABOUTUS_START}></a>
+                        <td colspan=<{$span_num|default:''}> rowspan=<{$span_num|default:''}> >
+                            <a href="javascript:random_mem($('.slot_active').attr('title'),<{$mem_total|default:''}>,<{$times|default:''}>);" class="btn btn-primary"><{$smarty.const._MD_TCW_ABOUTUS_START}></a>
                         </td>
                     <{/if}>
                 <{/foreach}>
@@ -102,6 +102,6 @@
     </table>
 <{/if}>
 
-<{if $isAdmin}>
+<{if $smarty.session.tad_web_adm|default:false}>
     <div id="log"></div>
 <{/if}>

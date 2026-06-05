@@ -1,28 +1,36 @@
 <?php
 use Xmf\Request;
 use XoopsModules\Tadtools\Utility;
-
-if (!class_exists('XoopsModules\Tadtools\Utility')) {
+if (! class_exists('XoopsModules\Tadtools\Utility')) {
     require XOOPS_ROOT_PATH . '/modules/tadtools/preloads/autoloader.php';
+}
+
+use XoopsModules\Tad_login\Tools as TadLoginTools;
+if (! class_exists('XoopsModules\Tad_login\Tools')) {
+    require XOOPS_ROOT_PATH . '/modules/tad_login/preloads/autoloader.php';
+}
+
+use XoopsModules\Tad_web\Tools as TadWebTools;
+if (! class_exists('XoopsModules\Tad_web\Tools')) {
+    require XOOPS_ROOT_PATH . '/modules/tad_web/preloads/autoloader.php';
 }
 
 //區塊主函式 (班級選單(tad_web_menu))
 function tad_web_menu($options)
 {
-    global $xoopsUser, $xoopsDB, $MyWebs, $xoopsConfig;
-    require_once XOOPS_ROOT_PATH . '/modules/tad_web/function_block.php';
-    $MyWebID = MyWebID(1);
+    global $xoopsUser, $xoopsDB, $xoTheme;
+    $MyWebID  = TadWebTools::MyWebID(1);
     $DefWebID = Request::getInt('WebID');
 
     $block['DefWebID'] = $DefWebID;
 
     if ($xoopsUser) {
-        $uid = $xoopsUser->uid();
 
-        $AllMyWebID = implode("','", $MyWebID);
+        $AllMyWebID = implode(',', $MyWebID);
         if ($MyWebID) {
-            $sql = 'select * from ' . $xoopsDB->prefix('tad_web') . " where WebID in ('{$AllMyWebID}') order by WebSort";
-            $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+            $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web') . '` WHERE `WebID` IN (?) ORDER BY `WebSort`';
+            $result = Utility::query($sql, 's', [$AllMyWebID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
             //$web_num = $xoopsDB->getRowsNum($result);
             $i = $defalt_used_size = 0;
 
@@ -31,32 +39,32 @@ function tad_web_menu($options)
                 foreach ($all as $k => $v) {
                     $$k = $v;
                 }
-                if (!empty($DefWebID) and $WebID == $DefWebID) {
-                    $defaltWebID = $WebID;
-                    $defaltWebTitle = $WebTitle;
-                    $defaltWebName = $WebName;
+                if (! empty($DefWebID) and $WebID == $DefWebID) {
+                    $defaltWebID      = $WebID;
+                    $defaltWebTitle   = $WebTitle;
+                    $defaltWebName    = $WebName;
                     $defalt_used_size = $used_size;
                 } elseif (empty($defaltWebID)) {
-                    $defaltWebID = $WebID;
+                    $defaltWebID    = $WebID;
                     $defaltWebTitle = $WebTitle;
-                    $defaltWebName = $WebName;
+                    $defaltWebName  = $WebName;
                 }
 
                 $block['webs'][$i]['title'] = $WebTitle;
                 $block['webs'][$i]['WebID'] = $WebID;
-                $block['webs'][$i]['name'] = $WebName;
-                $block['webs'][$i]['url'] = preg_match('/modules\/tad_web/', $_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] . "?WebID={$WebID}" : XOOPS_URL . "/modules/tad_web/index.php?WebID={$WebID}";
+                $block['webs'][$i]['name']  = $WebName;
+                $block['webs'][$i]['url']   = preg_match('/modules\/tad_web/', $_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] . "?WebID={$WebID}" : XOOPS_URL . "/modules/tad_web/index.php?WebID={$WebID}";
 
                 $i++;
             }
-            $defaltWebID = ($_SESSION['tad_web_adm'] and !empty($_GET['WebID'])) ? $_GET['WebID'] : $defaltWebID;
+            $defaltWebID = (isset($_SESSION['tad_web_adm']) and ! empty($_GET['WebID'])) ? $_GET['WebID'] : $defaltWebID;
 
-            $block['web_num'] = $i;
-            $block['WebTitle'] = $defaltWebTitle;
-            $block['back_home'] = empty($defaltWebName) ? _MB_TCW_HOME : sprintf(_MB_TCW_TO_MY_WEB, $defaltWebName);
+            $block['web_num']     = $i;
+            $block['WebTitle']    = $defaltWebTitle;
+            $block['back_home']   = empty($defaltWebName) ? _MB_TCW_HOME : sprintf(_MB_TCW_TO_MY_WEB, $defaltWebName);
             $block['defaltWebID'] = $defaltWebID;
 
-            if (!defined('_SHOW_UNABLE')) {
+            if (! defined('_SHOW_UNABLE')) {
                 define('_SHOW_UNABLE', '1');
             }
             $file = XOOPS_ROOT_PATH . "/uploads/tad_web/{$defaltWebID}/menu_var.php";
@@ -65,21 +73,19 @@ function tad_web_menu($options)
                 $block['plugins'] = $menu_var;
             }
 
-            // if ($_GET['test'] == '1') {
-            //     Utility::dd($block);
-            // }
-            $moduleHandler = xoops_getHandler('module');
-            $tad_web_Module = $moduleHandler->getByDirname('tad_web');
-            $configHandler = xoops_getHandler('config');
-            $xoopsModuleConfig = $configHandler->getConfigsByCat(0, $tad_web_Module->mid());
+            if (! isset($xoopsModuleConfig)) {
+                $TadWebModuleConfig = Utility::getXoopsModuleConfig('tad_login');
+            } else {
+                $TadWebModuleConfig = $xoopsModuleConfig;
+            }
 
-            $quota = empty($xoopsModuleConfig['user_space_quota']) ? 1 : get_web_config('space_quota', $defaltWebID);
+            $quota = empty($TadWebModuleConfig['user_space_quota']) ? 1 : TadWebTools::get_web_config('space_quota', $defaltWebID);
 
-            $block['size'] = size2mb($defalt_used_size);
-            $size = $quota > 0 ? (int) $block['size'] / (int) $quota : 0;
-            $percentage = round($size, 2) * 100;
+            $block['size']       = size2mb($defalt_used_size);
+            $size                = $quota > 0 ? (int) $block['size'] / (int) $quota : 0;
+            $percentage          = round($size, 2) * 100;
             $block['percentage'] = $percentage;
-            $block['quota'] = $quota;
+            $block['quota']      = $quota;
 
             if ($percentage <= 70) {
                 $block['progress_color'] = 'success';
@@ -91,12 +97,12 @@ function tad_web_menu($options)
         }
 
         //已關閉網站
-        $MyClosedWebID = MyWebID('0');
-        $AllMyClosedWebID = implode("','", $MyClosedWebID);
+        $MyClosedWebID    = TadWebTools::MyWebID('0');
+        $AllMyClosedWebID = implode(',', $MyClosedWebID);
         if ($MyClosedWebID) {
-            $sql = 'select * from ' . $xoopsDB->prefix('tad_web') . " where WebID in ('{$AllMyClosedWebID}') order by WebSort";
-            $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
-            $i = 0;
+            $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web') . '` WHERE `WebID` IN (?) ORDER BY `WebSort`';
+            $result = Utility::query($sql, 's', [$AllMyClosedWebID]) or Utility::web_error($sql, __FILE__, __LINE__);
+            $i      = 0;
 
             while (false !== ($all = $xoopsDB->fetchArray($result))) {
                 foreach ($all as $k => $v) {
@@ -105,24 +111,22 @@ function tad_web_menu($options)
 
                 $block['closed_webs'][$i]['title'] = $WebTitle;
                 $block['closed_webs'][$i]['WebID'] = $WebID;
-                $block['closed_webs'][$i]['name'] = $WebName;
-                $block['closed_webs'][$i]['url'] = XOOPS_URL . "/modules/tad_web/config.php?WebID={$WebID}&op=enable_my_web";
+                $block['closed_webs'][$i]['name']  = $WebName;
+                $block['closed_webs'][$i]['url']   = XOOPS_URL . "/modules/tad_web/config.php?WebID={$WebID}&op=enable_my_web";
 
                 $i++;
             }
         }
 
-        // if ($_GET['test'] == '1') {
-        //     Utility::dd($block);
-        // }
+        $xoTheme->addScript('modules/tad_web/class/bootstrap-progressbar/bootstrap-progressbar.js');
         return $block;
-    } elseif (!empty($_SESSION['LoginMemID'])) {
-        $block['op'] = 'mem';
-        $block['LoginMemID'] = $_SESSION['LoginMemID'];
-        $block['LoginMemName'] = $_SESSION['LoginMemName'];
+    } elseif (! empty($_SESSION['LoginMemID'])) {
+        $block['op']               = 'mem';
+        $block['LoginMemID']       = $_SESSION['LoginMemID'];
+        $block['LoginMemName']     = $_SESSION['LoginMemName'];
         $block['LoginMemNickName'] = $_SESSION['LoginMemNickName'];
-        $block['LoginWebID'] = $_SESSION['LoginWebID'];
-        $block['say_hi'] = sprintf(_MD_TCW_HI, $_SESSION['LoginMemName']);
+        $block['LoginWebID']       = $_SESSION['LoginWebID'];
+        $block['say_hi']           = sprintf(_MD_TCW_HI, $_SESSION['LoginMemName']);
 
         return $block;
     } else {
@@ -130,55 +134,48 @@ function tad_web_menu($options)
         return $block;
     }
 
-    $moduleHandler = xoops_getHandler('module');
-    $configHandler = xoops_getHandler('config');
+    $TadLoginModuleConfig = Utility::getXoopsModuleConfig('tad_login');
 
-    $TadLoginXoopsModule = $moduleHandler->getByDirname('tad_login');
-    if ($TadLoginXoopsModule) {
-        require XOOPS_ROOT_PATH . '/modules/tad_login/function.php';
-        require XOOPS_ROOT_PATH . '/modules/tad_login/oidc.php';
+    if ($TadLoginModuleConfig) {
         xoops_loadLanguage('county', 'tad_login');
         xoops_loadLanguage('blocks', 'tad_login');
 
-        $configHandler = xoops_getHandler('config');
-        $modConfig = $configHandler->getConfigsByCat(0, $TadLoginXoopsModule->getVar('mid'));
-
-        $auth_method = $modConfig['auth_method'];
-        $i = 0;
-
+        $auth_method = $TadLoginModuleConfig['auth_method'];
+        $i           = 0;
+        $oidc_array  = array_keys(TadLoginTools::$all_oidc);
+        $oidc_array2 = array_keys(TadLoginTools::$all_oidc2);
         foreach ($auth_method as $method) {
             // $method_const = '_' . mb_strtoupper($method);
             // $loginTitle = sprintf(_MB_TCW_OPENID_LOGIN, constant($method_const));
 
-            if ('facebook' === $method) {
-                $tlogin[$i]['link'] = facebook_login('return');
+            if ('line' === $method) {
+                $tlogin[$i]['link'] = TadLoginTools::line_login('return');
             } elseif ('google' === $method) {
-                $tlogin[$i]['link'] = google_login('return');
+                $tlogin[$i]['link'] = TadLoginTools::google_login('return');
             } else {
                 $tlogin[$i]['link'] = XOOPS_URL . "/modules/tad_login/index.php?login&op={$method}";
             }
 
-            $tlogin[$i]['img'] = in_array($method, $oidc_array) ? XOOPS_URL . "/modules/tad_login/images/oidc/{$all_oidc[$method]['tail']}.png" : XOOPS_URL . "/modules/tad_login/images/{$method}{$big}.png";
-            // $tlogin[$i]['text'] = in_array($method, $oidc_array) ? constant('_' . mb_strtoupper($all_oidc[$method]['tail'])) . ' OIDC ' . _MB_TADLOGIN_LOGIN : constant('_' . mb_strtoupper($method)) . ' OpenID ' . _MB_TADLOGIN_LOGIN;
+            $tlogin[$i]['img'] = in_array($method, $oidc_array) ? XOOPS_URL . "/modules/tad_login/images/oidc/" . TadLoginTools::$all_oidc[$method]['tail'] . ".png" : XOOPS_URL . "/modules/tad_login/images/{$method}{$big}.png";
 
             if (in_array($method, $oidc_array)) {
-                $tlogin[$i]['text'] = constant('_' . mb_strtoupper($all_oidc[$method]['tail'])) . ' OIDC ' . _MB_TADLOGIN_LOGIN;
+                $tlogin[$i]['text'] = constant('_' . mb_strtoupper(TadLoginTools::$all_oidc[$method]['tail'])) . ' OIDC ' . _MB_TADLOGIN_LOGIN;
             } elseif (in_array($method, $oidc_array2)) {
-                $tlogin[$i]['text'] = constant('_' . mb_strtoupper($all_oidc[$method]['tail'])) . _MB_TADLOGIN_LOGIN;
+                $tlogin[$i]['text'] = constant('_' . mb_strtoupper(TadLoginTools::$all_oidc[$method]['tail'])) . _MB_TADLOGIN_LOGIN;
             } else {
                 $tlogin[$i]['text'] = constant('_' . mb_strtoupper($method)) . ' OpenID ' . _MB_TADLOGIN_LOGIN;
             }
 
             $i++;
         }
-        //die(var_export($tlogin));
+
         $block['tlogin'] = $tlogin;
     }
 
     return $block;
 }
 
-if (!function_exists('size2mb')) {
+if (! function_exists('size2mb')) {
     function size2mb($size)
     {
         $mb = round($size / (1024 * 1024), 0);

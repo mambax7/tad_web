@@ -1,8 +1,6 @@
 <?php
 xoops_loadLanguage('main', 'tadtools');
-if (!defined('_TAD_NEED_TADTOOLS')) {
-    define('_TAD_NEED_TADTOOLS', 'This module needs TadTools module. You can download TadTools from <a href="https://campus-xoops.tn.edu.tw/modules/tad_modules/index.php?module_sn=1" target="_blank">XOOPS EasyGO</a>.');
-}
+
 define('_MD_TCW_HOME', 'List');
 define('_MD_TCW_CLASS_HOME', 'Home');
 define('_MD_TCW_ADMIN', 'Management');
@@ -54,7 +52,7 @@ define('_MD_TCW_WEB_NAME_SETUP', 'Web Name');
 define('_MD_TCW_FCNCTION_SETUP', 'Function setting');
 define('_MD_TCW_SELECT_TO_CANCEL', 'Please select the function you want to hide.');
 define('_MD_TCW_CLICK_TO_CHANG', 'Click on a picture to change image. You can drag background image and logo to anywhere.');
-define('_MD_TCW_GOOD_LOGO_SITE', "<ol><li>Good tool:<a href='http://www.qt86.com/random.php' target='_blank'>http://www.qt86.com/random.php</a></li><li>If logo was disappear , <a href='config.php?WebID=%s&op=reset_logo'>click here to reset it</a>.</li></ol>");
+define('_MD_TCW_GOOD_LOGO_SITE', "<ol><li>Good tool:<a href='https://www.canva.com' target='_blank'>https://www.canva.com</a></li><li>If logo was disappear , <a href='config.php?WebID=%s&op=reset_logo'>click here to reset it</a>.</li></ol>");
 define('_MD_TCW_GOOD_BG_SITE', "<ol><li>Good photos: <a href='https://pixabay.com/' target='_blank'>https://pixabay.com/</a></li><li>If head background was disappear , <a href='config.php?WebID=%s&op=reset_head'>click here to reset it</a>.</li></ol>");
 define('_MD_TCW_RAND_IMAGE', 'Select random background');
 define('_MD_TCW_BG_TOP', 'Ton');

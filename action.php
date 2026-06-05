@@ -5,8 +5,6 @@ require_once __DIR__ . '/header.php';
 $plugin = 'action';
 require_once __DIR__ . '/plugin_header.php';
 require_once XOOPS_ROOT_PATH . '/header.php';
-//$xoopsTpl->assign('plugin', $plugin);
-/*-----------function區--------------*/
 
 /*-----------執行動作判斷區----------*/
 $op = Request::getString('op');
@@ -46,6 +44,13 @@ switch ($op) {
         header("location: {$_SERVER['PHP_SELF']}?WebID={$WebID}");
         exit;
 
+    //重新擷取
+    case 're_get':
+        $tad_web_action->re_get($ActionID);
+        clear_block_cache($WebID);
+        header("location: {$_SERVER['PHP_SELF']}?WebID={$WebID}&ActionID={$ActionID}");
+        exit;
+
     //預設動作
     default:
         if (empty($ActionID)) {
@@ -65,3 +70,5 @@ switch ($op) {
 /*-----------秀出結果區--------------*/
 require_once __DIR__ . '/footer.php';
 require_once XOOPS_ROOT_PATH . '/footer.php';
+
+/*-----------function區--------------*/

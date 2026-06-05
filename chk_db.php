@@ -1,38 +1,39 @@
 <?php
 
-use XoopsModules\Tadtools\Utility;
+// use XoopsModules\Tadtools\Utility;
 
-require_once __DIR__ . '/header.php';
+// require_once __DIR__ . '/header.php';
 
-$from = isset($_GET['from']) ? (int) $_GET['from'] : 0;
+// $from = isset($_GET['from']) ? (int) $_GET['from'] : 0;
 
-$sql = 'select WebID from xx_tad_web';
-$result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
-while (list($WebID) = $xoopsDB->fetchRow($result)) {
-    $web[] = $WebID;
-}
+// $sql = 'SELECT `WebID` FROM `' . $xoopsDB->prefix('tad_web') . '`';
+// $result = Utility::query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
 
-sort($web);
-// $firstKey = array_key_first($web);
-// $min = $web[$firstKey];
-$lastKey = array_key_last($web);
-$max = $web[$lastKey];
+// while (list($WebID) = $xoopsDB->fetchRow($result)) {
+//     $web[] = $WebID;
+// }
 
-for ($i = $from; $i < $max; $i++) {
-    if (in_array($i, $web)) {
+// sort($web);
+// // $firstKey = array_key_first($web);
+// // $min = $web[$firstKey];
+// $lastKey = array_key_last($web);
+// $max = $web[$lastKey];
 
-        $bg_user_path = XOOPS_ROOT_PATH . "/uploads/tad_web/{$i}/bg";
-        $TadUpFilesBg = TadUpFilesBg($i);
-        fixed_img($bg_user_path, 'bg', $i, $TadUpFilesBg);
+// for ($i = $from; $i < $max; $i++) {
+//     if (in_array($i, $web)) {
 
-        $head_user_path = XOOPS_ROOT_PATH . "/uploads/tad_web/{$i}/head";
-        $TadUpFilesHead = TadUpFilesHead($i);
-        fixed_img($head_user_path, 'head', $i, $TadUpFilesHead);
+//         $bg_user_path = XOOPS_ROOT_PATH . "/uploads/tad_web/{$i}/bg";
+//         $TadUpFilesBg = TadUpFilesBg($i);
+//         fixed_img($TadUpFilesBg, $bg_user_path, 'bg', $i);
 
-        echo "<div>{$i} 已清除</div>";
-    } else {
-        $sql = "delete from xx_tad_web_files_center where `col_sn` = '$i' AND (`col_name` = 'bg' or `col_name` = 'head')";
-        $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
-        echo "<div style='color:red;'>{$i} 不存在，已刪除</div>";
-    }
-}
+//         $head_user_path = XOOPS_ROOT_PATH . "/uploads/tad_web/{$i}/head";
+//         $TadUpFilesHead = TadUpFilesHead($i);
+//         fixed_img($TadUpFilesHead, $head_user_path, 'head', $i);
+
+//         echo "<div>{$i} 已清除</div>";
+//     } else {
+// $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_files_center') . '` WHERE `col_sn` = ? AND (`col_name` = ? OR `col_name` = ?)';
+// Utility::query($sql, 'iss', [$i, 'bg', 'head']) or Utility::web_error($sql, __FILE__, __LINE__);
+//         echo "<div style='color:red;'>{$i} 不存在，已刪除</div>";
+//     }
+// }

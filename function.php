@@ -1,48 +1,42 @@
 <?php
+
 use XoopsModules\Tadtools\TadUpFiles;
 use XoopsModules\Tadtools\Utility;
+use XoopsModules\Tad_web\Tools as TadWebTools;
 
 define('_EZCLASS', 'https://class.tn.edu.tw');
 $is_ezclass = (XOOPS_URL == _EZCLASS) ? true : false;
 define('_IS_EZCLASS', $is_ezclass);
 
-require_once XOOPS_ROOT_PATH . '/modules/tadtools/TadUpFiles.php';
 $TadUpFiles = new TadUpFiles('tad_web');
 
 $subdir = isset($WebID) ? "/{$WebID}" : '';
 $TadUpFiles->set_dir('subdir', $subdir);
 
-//引入TadTools的函式庫
-require_once __DIR__ . '/function_block.php';
-
 require_once XOOPS_ROOT_PATH . '/modules/tad_web/class/WebCate.php';
 
 //判斷是否對該模組有管理權限
-$isAdmin = false;
+
 $LoginMemID = $LoginMemName = $LoginMemNickName = $LoginWebID = $LoginParentID = $LoginParentName = $LoginParentMemID = '';
-$MyWebs = [];
-$isMyWeb = false;
+$MyWebs     = [];
+$isMyWeb    = false;
 if ($xoopsUser) {
-    $moduleHandler = xoops_getHandler('module');
-    $xoopsModule = $moduleHandler->getByDirname('tad_web');
-    $module_id = $xoopsModule->getVar('mid');
-    $isAdmin = $xoopsUser->isAdmin($module_id);
     if (!isset($_SESSION['tad_web_adm'])) {
-        $_SESSION['tad_web_adm'] = $xoopsUser->isAdmin($module_id);
+        $_SESSION['tad_web_adm'] = $xoopsUser->isAdmin();
     }
     //我的班級ID（陣列）
-    $MyWebs = MyWebID('all');
+    $MyWebs = TadWebTools::MyWebID('all');
 
     //目前瀏覽的是否是我的班級？
-    $isMyWeb = ($isAdmin) ? true : in_array($WebID, $MyWebs);
+    $isMyWeb = ($_SESSION['tad_web_adm']) ? true : in_array($WebID, $MyWebs);
 } else {
-    $LoginMemID = isset($_SESSION['LoginMemID']) ? $_SESSION['LoginMemID'] : null;
-    $LoginMemName = isset($_SESSION['LoginMemName']) ? $_SESSION['LoginMemName'] : null;
+    $LoginMemID       = isset($_SESSION['LoginMemID']) ? $_SESSION['LoginMemID'] : null;
+    $LoginMemName     = isset($_SESSION['LoginMemName']) ? $_SESSION['LoginMemName'] : null;
     $LoginMemNickName = isset($_SESSION['LoginMemNickName']) ? $_SESSION['LoginMemNickName'] : null;
-    $LoginWebID = isset($_SESSION['LoginWebID']) ? $_SESSION['LoginWebID'] : null;
+    $LoginWebID       = isset($_SESSION['LoginWebID']) ? $_SESSION['LoginWebID'] : null;
 
-    $LoginParentID = isset($_SESSION['LoginParentID']) ? $_SESSION['LoginParentID'] : null;
-    $LoginParentName = isset($_SESSION['LoginParentName']) ? $_SESSION['LoginParentName'] : null;
+    $LoginParentID    = isset($_SESSION['LoginParentID']) ? $_SESSION['LoginParentID'] : null;
+    $LoginParentName  = isset($_SESSION['LoginParentName']) ? $_SESSION['LoginParentName'] : null;
     $LoginParentMemID = isset($_SESSION['LoginParentMemID']) ? $_SESSION['LoginParentMemID'] : null;
 }
 
@@ -57,6 +51,7 @@ function clear_block_cache($WebID)
 {
     $web_blocks_file = XOOPS_VAR_PATH . "/tad_web/$WebID/web_blocks.json";
     unlink($web_blocks_file);
+    clear_power_cache($WebID);
 }
 
 // 清除額外設定的儲存值
@@ -92,7 +87,7 @@ function clear_my_webs_data($WebID)
 {
     global $xoopsUser;
     if ($xoopsUser) {
-        $uid = $xoopsUser->uid();
+        $uid               = $xoopsUser->uid();
         $my_webs_data_file = XOOPS_VAR_PATH . "/tad_web/my_webs_data/$uid.json";
         unlink($my_webs_data_file);
         unset($_SESSION['tad_web'][$WebID]);
@@ -110,8 +105,9 @@ function clear_power_cache($WebID)
 function get_blocks($WebID)
 {
     global $xoopsDB;
-    $sql = 'select * from ' . $xoopsDB->prefix('tad_web_blocks') . " where `WebID`='{$WebID}' order by `BlockSort`";
-    $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_blocks') . '` WHERE `WebID`=? ORDER BY `BlockSort`';
+    $result = Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $Blocks = [];
     while (false !== ($all = $xoopsDB->fetchArray($result))) {
         $Blocks[] = $all;
@@ -124,8 +120,9 @@ function get_blocks($WebID)
 function get_block($BlockID)
 {
     global $xoopsDB;
-    $sql = 'select * from ' . $xoopsDB->prefix('tad_web_blocks') . " where `BlockID`='{$BlockID}'";
-    $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_blocks') . '` WHERE `BlockID`=?';
+    $result = Utility::query($sql, 'i', [$BlockID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $block = $xoopsDB->fetchArray($result);
     return $block;
 }
@@ -133,12 +130,13 @@ function get_block($BlockID)
 //取得所有區塊設定
 function get_dir_blocks($mode = '')
 {
-    global $xoopsConfig, $isAdmin;
+    global $xoopsConfig;
     $dir_blocks_file = XOOPS_ROOT_PATH . '/uploads/tad_web/dir_blocks.json';
     if (file_exists($dir_blocks_file) and '' == $mode) {
         $Config = get_json_file($dir_blocks_file);
     } else {
-        $Config = [];
+        unlink($dir_blocks_file);
+        $Config  = [];
         $plugins = get_dir_plugins();
 
         foreach ($plugins as $plugin) {
@@ -147,7 +145,7 @@ function get_dir_blocks($mode = '')
                 require_once XOOPS_ROOT_PATH . "/modules/tad_web/plugins/{$plugin}/langs/{$xoopsConfig['language']}.php";
                 include $config_blocks_file;
                 $Config[$plugin] = $blocksArr;
-                $blocksArr = [];
+                $blocksArr       = [];
             }
         }
 
@@ -161,17 +159,7 @@ function get_dir_blocks($mode = '')
 function put_json_file($file, $array)
 {
     unlink($file);
-    if (PHP_VERSION_ID >= 50400) {
-        $json = json_encode($array, JSON_UNESCAPED_UNICODE);
-    } else {
-        array_walk_recursive($array, function (&$value, $key) {
-            if (is_string($value)) {
-                $value = urlencode($value);
-            }
-        });
-        $json = urldecode(json_encode($array));
-    }
-
+    $json = json_encode($array, JSON_UNESCAPED_UNICODE);
     file_put_contents($file, $json);
 }
 
@@ -186,9 +174,8 @@ function get_json_file($file)
 //取得各外掛及系統所有區塊(onUpdate.php)
 function get_all_blocks($value = 'title')
 {
-    global $xoopsDB, $isAdmin;
 
-    $myts = \MyTextSanitizer::getInstance();
+    $myts         = \MyTextSanitizer::getInstance();
     $block_option = [];
     //來自plugin的區塊
     $allBlockConfig = get_dir_blocks();
@@ -204,7 +191,7 @@ function get_all_blocks($value = 'title')
             } elseif (isset($block[$value]) and 'position' === $value) {
                 $block_option[$func] = $block['position'];
             } else {
-                $name = $myts->htmlSpecialChars($block['name']);
+                $name                = $myts->htmlSpecialChars($block['name']);
                 $block_option[$func] = $name;
             }
         }
@@ -219,28 +206,24 @@ function get_position_blocks($WebID, $BlockPosition, $plugin = '')
     if ('uninstall' === $BlockPosition) {
         //找出這個網站已經安裝的分享區塊
         if (empty($plugin)) {
-            $share_blocks_id = get_share_blocks($WebID);
-            $all_share_blocks = is_array($share_blocks_id) ? implode("','", $share_blocks_id) : '';
-            $andShareBlocks = empty($all_share_blocks) ? '' : "and a.`BlockID` not in('{$all_share_blocks}')";
-            // $andBlockPosition = "(a.`WebID`='{$WebID}' and (a.`BlockPosition`='uninstall' or a.`BlockPosition`='') and a.`plugin`!='share' ) or (a.`plugin`='share' and a.`WebID`!='{$WebID}' {$andShareBlocks})";
-            $andBlockPosition = "(a.`WebID`='{$WebID}' and (a.`BlockPosition`='uninstall' or a.`BlockPosition`='')) or (a.`plugin`='share' and a.`WebID`!='{$WebID}' {$andShareBlocks})";
+            $share_blocks_id  = get_share_blocks($WebID);
+            $all_share_blocks = is_array($share_blocks_id) ? implode(',', $share_blocks_id) : '';
+            $andShareBlocks   = empty($all_share_blocks) ? '' : "AND a.`BlockID` NOT IN ({$all_share_blocks})";
+            $andBlockPosition = "(a.`WebID`='{$WebID}' AND (a.`BlockPosition`='uninstall' OR a.`BlockPosition`='')) OR (a.`plugin`='share' AND a.`WebID`!='{$WebID}' {$andShareBlocks})";
         } else {
-            $andBlockPosition = "(a.`WebID`='{$WebID}' and (a.`BlockPosition`='uninstall' or a.`BlockPosition`='') and a.`plugin`='{$plugin}' )";
+            $andBlockPosition = "(a.`WebID`='{$WebID}' AND (a.`BlockPosition`='uninstall' OR a.`BlockPosition`='') AND a.`plugin`='{$plugin}' )";
         }
     } else {
-        // $andBlockPosition = empty($plugin) ? "a.`WebID`='{$WebID}' and a.`BlockPosition`='{$BlockPosition}' and a.`plugin`!='share'" : "a.`WebID`='{$WebID}' and a.`BlockPosition`='{$BlockPosition}' and a.`plugin`='{$plugin}'";
         $andBlockPosition = empty($plugin) ? "a.`WebID`='{$WebID}' and a.`BlockPosition`='{$BlockPosition}'" : "a.`WebID`='{$WebID}' and a.`BlockPosition`='{$BlockPosition}' and a.`plugin`='{$plugin}'";
     }
 
-    $sql = 'select a.*, b.`PluginTitle` from ' . $xoopsDB->prefix('tad_web_blocks') . " as a
-    left join " . $xoopsDB->prefix('tad_web_plugins') . " as b on a.`plugin` = b.`PluginDirname` and a.`WebID` = b.`WebID`
-    where  $andBlockPosition order by a.`BlockSort`";
-    // if ($_GET['test'] == 1) {
-    //     die($sql);
-    // }
-    $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'SELECT a.*, b.`PluginTitle` FROM `' . $xoopsDB->prefix('tad_web_blocks') . '` AS a
+    LEFT JOIN `' . $xoopsDB->prefix('tad_web_plugins') . '` AS b ON a.`plugin` = b.`PluginDirname` AND a.`WebID` = b.`WebID`
+    WHERE ' . $andBlockPosition . ' ORDER BY a.`BlockSort`';
+    $result = Utility::query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $Blocks = [];
-    $i = 0;
+    $i      = 0;
     while (false !== ($all = $xoopsDB->fetchArray($result))) {
         $plugin = $all['plugin'];
         if ('custom' !== $plugin and 'share' !== $plugin and 'system' !== $plugin) {
@@ -249,11 +232,11 @@ function get_position_blocks($WebID, $BlockPosition, $plugin = '')
             }
         }
 
-        $Blocks[$i] = $all;
+        $Blocks[$i]               = $all;
         $Blocks[$i]['BlockShare'] = !empty($all['ShareFrom']) ? 1 : 0;
-        $BlockEnable = 1 == $all['BlockEnable'] ? '1' : '0';
-        $config = json_decode($all['BlockConfig'], true);
-        $Blocks[$i]['config'] = $config;
+        $BlockEnable              = 1 == $all['BlockEnable'] ? '1' : '0';
+        $config                   = json_decode($all['BlockConfig'], true);
+        $Blocks[$i]['config']     = is_array($config) ? $config : [];
 
         $Blocks[$i]['icon'] = "<img src=\"images/show{$BlockEnable}.gif\" id=\"{$all['BlockID']}_icon\" alt=\"{$all['BlockTitle']}\" title=\"{$BlockEnable}\" style=\"cursor: pointer;\" onClick=\"enableBlock('{$all['BlockID']}')\" >";
         $i++;
@@ -267,8 +250,8 @@ function get_share_blocks($WebID)
 {
     global $xoopsDB;
     $share_blocks = [];
-    $sql = 'select ShareFrom from ' . $xoopsDB->prefix('tad_web_blocks') . " where `WebID`='{$WebID}' and `plugin`='custom' and `ShareFrom` > 0";
-    $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql          = 'SELECT `ShareFrom` FROM `' . $xoopsDB->prefix('tad_web_blocks') . '` WHERE `WebID`=? AND `plugin`=? AND `ShareFrom` > 0';
+    $result       = Utility::query($sql, 'is', [$WebID, 'custom']) or Utility::web_error($sql, __FILE__, __LINE__);
     while (list($ShareFromID) = $xoopsDB->fetchRow($result)) {
         $share_blocks[] = $ShareFromID;
     }
@@ -284,12 +267,12 @@ function get_share_blocks($WebID)
 function get_web_blocks($WebID, $plugin = '', $BlockEnable = 1)
 {
     global $xoopsDB;
-    $andBlockPlugin = empty($plugin) ? '' : "and plugin='{$plugin}'";
-    $andBlockEnable = null === $BlockEnable ? '' : "and BlockEnable='{$BlockEnable}'";
-    $sql = 'select * from ' . $xoopsDB->prefix('tad_web_blocks') . " where `WebID`='{$WebID}' {$andBlockEnable} {$andBlockPlugin}";
-    $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $andBlockPlugin = empty($plugin) ? '' : "AND `plugin`='{$plugin}'";
+    $andBlockEnable = null === $BlockEnable ? '' : "AND `BlockEnable`='{$BlockEnable}'";
+    $sql            = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_blocks') . '` WHERE `WebID`=? ' . $andBlockEnable . ' ' . $andBlockPlugin;
+    $result         = Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $i = 0;
+    $i      = 0;
     $Blocks = [];
     while (false !== ($all = $xoopsDB->fetchArray($result))) {
         $Blocks[$i] = $all;
@@ -303,8 +286,9 @@ function get_web_blocks($WebID, $plugin = '', $BlockEnable = 1)
 function max_blocks_sort($WebID, $BlockPosition)
 {
     global $xoopsDB;
-    $sql = 'select max(`BlockSort`) from ' . $xoopsDB->prefix('tad_web_blocks') . " where WebID='$WebID' and BlockPosition='{$BlockPosition}'";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT MAX(`BlockSort`) FROM `' . $xoopsDB->prefix('tad_web_blocks') . '` WHERE `WebID`=? AND `BlockPosition`=?';
+    $result = Utility::query($sql, 'is', [$WebID, $BlockPosition]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     list($sort) = $xoopsDB->fetchRow($result);
 
     return ++$sort;
@@ -315,12 +299,13 @@ function get_web_roles($defWebID = '', $defRole = '')
 {
     global $xoopsDB;
 
-    $andWebID = empty($defWebID) ? '' : "and `WebID`='$defWebID'";
-    $andRole = empty($defRole) ? '' : "and `role`='$defRole'";
-    $sql = 'select uid from ' . $xoopsDB->prefix('tad_web_roles') . " where 1 $andRole $andWebID ";
-    $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $andWebID = empty($defWebID) ? '' : "AND `WebID`='$defWebID'";
+    $andRole  = empty($defRole) ? '' : "AND `role`='$defRole'";
+    $sql      = 'SELECT `uid` FROM `' . $xoopsDB->prefix('tad_web_roles') . "` WHERE 1 $andWebID $andRole";
+    $result   = Utility::query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $users = [];
-    $i = 0;
+    $i     = 0;
     while (list($uid) = $xoopsDB->fetchRow($result)) {
         $users[$i] = $uid;
         $i++;
@@ -339,9 +324,11 @@ function get_web_all_config($WebID = '')
     }
 
     $tad_web_config_file = XOOPS_VAR_PATH . "/tad_web/$WebID/tad_web_config.json";
+    Utility::test($tad_web_config_file, 'tad_web_config_file', 'dd');
 
     if (file_exists($tad_web_config_file)) {
         $tad_web_config = json_decode(file_get_contents($tad_web_config_file), true);
+        Utility::test($tad_web_config, 'tad_web_config', 'dd');
     } else {
         if (file_exists(XOOPS_ROOT_PATH . '/themes/for_tad_web_theme/theme_config.php') or file_exists(XOOPS_ROOT_PATH . '/themes/for_tad_web_theme_2/theme_config.php')) {
             if (file_exists(XOOPS_ROOT_PATH . '/themes/for_tad_web_theme/theme_config.php')) {
@@ -362,13 +349,16 @@ function get_web_all_config($WebID = '')
                     mklogoPic($WebID);
                 }
                 copy(XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/auto_logo/auto_logo.png", XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/logo/{$tad_web_config['web_logo']}");
+
+                chmod(XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/logo/{$tad_web_config['web_logo']}", 0777);
             }
         } else {
             Utility::web_error("Need to install 'for_tad_web_theme' or 'for_tad_web_theme_2'theme.");
         }
 
-        $sql = 'select `ConfigName`,`ConfigValue` from ' . $xoopsDB->prefix('tad_web_config') . " where `WebID`='$WebID'";
-        $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql    = 'SELECT `ConfigName`,`ConfigValue` FROM `' . $xoopsDB->prefix('tad_web_config') . '` WHERE `WebID`=?';
+        $result = Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
         while (list($ConfigName, $ConfigValue) = $xoopsDB->fetchRow($result)) {
             $tad_web_config[$ConfigName] = $ConfigValue;
         }
@@ -382,22 +372,15 @@ function get_web_all_config($WebID = '')
 //儲存網站設定
 function save_web_config($ConfigName, $ConfigValue, $WebID)
 {
-    global $xoopsDB, $xoopsUser, $isMyWeb;
-    // if (!empty($WebID) and !$isMyWeb) { //這樣後台會有問題
-    //     return;
-    // }
+    global $xoopsDB;
 
     if (is_array($ConfigValue)) {
         $ConfigValue = implode(';', $ConfigValue);
     }
-    $myts = \MyTextSanitizer::getInstance();
-    $ConfigValue = $myts->addSlashes($ConfigValue);
 
-    $sql = 'replace into ' . $xoopsDB->prefix('tad_web_config') . "
-    (`ConfigName`, `ConfigValue`, `WebID`)
-    values('{$ConfigName}' , '{$ConfigValue}', '{$WebID}')";
-    // die($sql);
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'REPLACE INTO `' . $xoopsDB->prefix('tad_web_config') . '` (`ConfigName`, `ConfigValue`, `WebID`) VALUES (?, ?, ?)';
+    Utility::query($sql, 'ssi', [(string) $ConfigName, (string) $ConfigValue, $WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $file = XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/web_config.php";
     unlink($file);
     clear_tad_web_config($WebID);
@@ -407,14 +390,14 @@ function save_web_config($ConfigName, $ConfigValue, $WebID)
 function get_db_plugins($WebID = '', $only_enable = false)
 {
     global $xoopsDB;
-    $andEnable = ($only_enable) ? "and PluginEnable='1'" : '';
+    $andEnable = ($only_enable) ? "AND `PluginEnable`='1'" : '';
 
     //取得tad_web_plugins資料表中該網站所有設定值
-    $sql = 'select * from ' . $xoopsDB->prefix('tad_web_plugins') . " where WebID='{$WebID}' {$andEnable} order by PluginSort";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_plugins') . '` WHERE `WebID`=? ' . $andEnable . ' ORDER BY `PluginSort`';
+    $result = Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
     while (false !== ($all = $xoopsDB->fetchArray($result))) {
-        $dirname = $all['PluginDirname'];
+        $dirname           = $all['PluginDirname'];
         $plugins[$dirname] = $all;
     }
 
@@ -425,8 +408,8 @@ function get_db_plugin($WebID = '', $dirname = '')
 {
     global $xoopsDB;
 
-    $sql = 'select * from ' . $xoopsDB->prefix('tad_web_plugins') . " where WebID='{$WebID}' and PluginDirname='{$dirname}'";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_plugins') . '` WHERE `WebID` =? AND `PluginDirname` =?';
+    $result = Utility::query($sql, 'is', [$WebID, $dirname]) or Utility::web_error($sql, __FILE__, __LINE__);
 
     $all = $xoopsDB->fetchArray($result);
 
@@ -471,7 +454,7 @@ function get_plugins($WebID = '', $mode = 'show', $only_enable = false)
 
     $pluginsVal = get_db_plugins($WebID, $only_enable);
 
-    $dir = XOOPS_ROOT_PATH . '/modules/tad_web/plugins/';
+    $dir         = XOOPS_ROOT_PATH . '/modules/tad_web/plugins/';
     $dir_plugins = get_dir_plugins();
     foreach ($dir_plugins as $file) {
         if ($only_enable and empty($pluginsVal)) {
@@ -484,19 +467,19 @@ function get_plugins($WebID = '', $mode = 'show', $only_enable = false)
         //發現新外掛時，預設啟用之
         if (empty($pluginVal)) {
             $sort = plugins_max_sort($WebID, $file);
-            $sql = 'replace into ' . $xoopsDB->prefix('tad_web_plugins') . " (`PluginDirname`, `PluginTitle`, `PluginSort`, `PluginEnable`, `WebID`) values('{$file}', '{$pluginConfig['name']}', '{$sort}', '1', '{$WebID}')";
-            $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+            $sql  = 'REPLACE INTO `' . $xoopsDB->prefix('tad_web_plugins') . '` (`PluginDirname`, `PluginTitle`, `PluginSort`, `PluginEnable`, `WebID`) VALUES (?, ?, ?, ?, ?)';
+            Utility::query($sql, 'ssisi', [$file, $pluginConfig['name'], $sort, '1', $WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
         }
 
         $pluginConfigs[$file] = $pluginConfig;
     }
 
     $new_pluginsVal = get_db_plugins($WebID, $only_enable);
-    $i = 0;
+    $i              = 0;
     foreach ($new_pluginsVal as $dirname => $plugin) {
         $plugins[$i]['dirname'] = $dirname;
-        $plugins[$i]['config'] = $pluginConfigs[$dirname];
-        $plugins[$i]['db'] = $new_pluginsVal[$dirname];
+        $plugins[$i]['config']  = $pluginConfigs[$dirname];
+        $plugins[$i]['db']      = $new_pluginsVal[$dirname];
 
         if ('edit' === $mode) {
             // $plugins[$i]['upform'] = $TadUpFiles->upform(true, $dirname, '1', false);
@@ -513,8 +496,8 @@ function plugins_max_sort($WebID, $dirname)
 {
     global $xoopsDB;
 
-    $sql = 'select max(PluginSort) from ' . $xoopsDB->prefix('tad_web_plugins') . " where WebID='{$WebID}' and PluginDirname='{$dirname}'";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT MAX(`PluginSort`) FROM `' . $xoopsDB->prefix('tad_web_plugins') . '` WHERE `WebID` =? AND `PluginDirname` =?';
+    $result = Utility::query($sql, 'is', [$WebID, $dirname]) or Utility::web_error($sql, __FILE__, __LINE__);
 
     list($sort) = $xoopsDB->fetchRow($result);
     $sort++;
@@ -541,8 +524,9 @@ function common_template($WebID, $web_all_config = '')
         }
 
         if (empty($web_all_config['default_class'])) {
-            $sql = 'select max(`CateID`) from ' . $xoopsDB->prefix('tad_web_cate') . " where `ColName` = 'aboutus' AND `CateEnable` = '1' AND `WebID` = '{$WebID}'";
-            $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+            $sql    = 'SELECT MAX(`CateID`) FROM `' . $xoopsDB->prefix('tad_web_cate') . '` WHERE `ColName` = ? AND `CateEnable` = ? AND `WebID` = ?';
+            $result = Utility::query($sql, 'ssi', ['aboutus', '1', $WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
             list($default_class) = $xoopsDB->fetchRow($result);
             save_web_config('default_class', $default_class, $WebID);
             $web_all_config['default_class'] = $default_class;
@@ -567,13 +551,13 @@ function mk_menu_var_file($WebID = null)
         return;
     }
 
+    $myts        = \MyTextSanitizer::getInstance();
     $all_plugins = get_plugins($WebID, 'show');
-    $myts = \MyTextSanitizer::getInstance();
+    Utility::test($all_plugins, 'all_plugins', 'dd');
 
     $current = "<?php\n";
-    $i = 1;
+    $i       = 1;
     foreach ($all_plugins as $plugin) {
-        // die(var_export($plugin));
         $dirname = $plugin['dirname'];
 
         if ('system' === $dirname) {
@@ -584,7 +568,7 @@ function mk_menu_var_file($WebID = null)
             $current .= "if(defined('_SHOW_UNABLE') and _SHOW_UNABLE=='1'){\n";
         }
 
-        $plugin['db']['PluginTitle'] = $myts->addSlashes($plugin['db']['PluginTitle']);
+        $plugin['db']['PluginTitle'] = addslashes($plugin['db']['PluginTitle']);
 
         $current .= "\$menu_var['{$dirname}']['id']     = $i;\n";
         $current .= "\$menu_var['{$dirname}']['title']  = '{$plugin['db']['PluginTitle']}';\n";
@@ -620,6 +604,7 @@ function mk_menu_var_file($WebID = null)
 
     if (!empty($WebID)) {
         $file = XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/menu_var.php";
+        Utility::test($plugin_enable_arr, 'plugin_enable_arr', 'dd');
         save_web_config('web_plugin_enable_arr', implode(',', $plugin_enable_arr), $WebID);
     }
 
@@ -629,9 +614,9 @@ function mk_menu_var_file($WebID = null)
 
     if (empty($display_blocks_arr)) {
         //取得系統所有區塊
-        $block_option = get_all_blocks();
-        $block_plugin = get_all_blocks('plugin');
-        $block_config = get_all_blocks('config');
+        $block_option   = get_all_blocks();
+        $block_plugin   = get_all_blocks('plugin');
+        $block_config   = get_all_blocks('config');
         $block_position = get_all_blocks('position');
 
         //存入既有設定
@@ -640,23 +625,14 @@ function mk_menu_var_file($WebID = null)
             $BlockEnable = 1;
 
             if (isset($block_config[$func]) and !empty($block_config[$func])) {
-                if (PHP_VERSION_ID >= 50400) {
-                    $BlockConfig = json_encode($block_config[$func], JSON_UNESCAPED_UNICODE);
-                } else {
-                    array_walk_recursive($block_config[$func], function (&$value, $key) {
-                        if (is_string($value)) {
-                            $value = urlencode($value);
-                        }
-                    });
-                    $BlockConfig = urldecode(json_encode($block_config[$func]));
-                }
+                $BlockConfig = json_encode($block_config[$func], JSON_UNESCAPED_UNICODE);
             } else {
                 $BlockConfig = '';
             }
 
             $BlockConfig = str_replace('{{WebID}}', $WebID, $BlockConfig);
-            $sql = 'insert into `' . $xoopsDB->prefix('tad_web_blocks') . "` (`BlockName`, `BlockCopy`, `BlockTitle`, `BlockContent`, `BlockEnable`, `BlockConfig`, `BlockPosition`, `BlockSort`, `WebID`, `plugin`, `ShareFrom`) values('{$func}', 0, '{$name}', '', '{$BlockEnable}', '{$BlockConfig}', '{$block_position[$func]}', '{$sort}', '{$WebID}', '{$block_plugin[$func]}', 0)";
-            $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+            $sql         = 'INSERT INTO `' . $xoopsDB->prefix('tad_web_blocks') . '` (`BlockName`, `BlockCopy`, `BlockTitle`, `BlockContent`, `BlockEnable`, `BlockConfig`, `BlockPosition`, `BlockSort`, `WebID`, `plugin`, `ShareFrom`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+            Utility::query($sql, 'sisssssiisi', [$func, 0, $name, '', $BlockEnable, $BlockConfig, (string) $block_position[$func], $sort, $WebID, (string) $block_plugin[$func], 0]) or Utility::web_error($sql, __FILE__, __LINE__);
             $sort++;
         }
     }
@@ -666,15 +642,17 @@ function get_tad_web_mems($MemID)
 {
     global $xoopsDB;
 
-    $sql = 'select * from ' . $xoopsDB->prefix('tad_web_mems') . " where MemID='{$MemID}'";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_mems') . '` WHERE `MemID`=?';
+    $result = Utility::query($sql, 'i', [$MemID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $all = $xoopsDB->fetchArray($result);
 
-    $sql = 'select MemNum,CateID from ' . $xoopsDB->prefix('tad_web_link_mems') . " where `MemID`='{$MemID}' limit 0,1";
-    $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT `MemNum`,`CateID` FROM `' . $xoopsDB->prefix('tad_web_link_mems') . '` WHERE `MemID`=? LIMIT 0,1';
+    $result = Utility::query($sql, 'i', [$MemID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     list($MemNum, $CateID) = $xoopsDB->fetchRow($result);
-    $all['MemNum'] = $MemNum;
-    $all['CateID'] = $CateID;
+    $all['MemNum']         = $MemNum;
+    $all['CateID']         = $CateID;
 
     return $all;
 }
@@ -682,9 +660,10 @@ function get_tad_web_mems($MemID)
 function get_tad_web_parent($ParentID = '', $code = '')
 {
     global $xoopsDB;
-    $andCode = !empty($code) ? "and `code`='{$code}'" : '';
-    $sql = 'select * from ' . $xoopsDB->prefix('tad_web_mem_parents') . " where `ParentID`='{$ParentID}' {$andCode}";
-    $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $andCode = !empty($code) ? "AND `code`='{$code}'" : '';
+    $sql     = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_mem_parents') . '` WHERE `ParentID`=? ' . $andCode;
+    $result  = Utility::query($sql, 'i', [$ParentID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $all = $xoopsDB->fetchArray($result);
 
     return $all;
@@ -694,9 +673,9 @@ function get_tad_web_link_mems($MemID = '', $CateID = '')
 {
     global $xoopsDB;
 
-    $sql = 'select * from ' . $xoopsDB->prefix('tad_web_link_mems') . " where MemID='{$MemID}' and CateID='{$CateID}'";
-    // die($sql);
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_link_mems') . '` WHERE `MemID`=? AND `CateID`=?';
+    $result = Utility::query($sql, 'ii', [$MemID, $CateID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $all = $xoopsDB->fetchArray($result);
     // die(var_export($all));
     return $all;
@@ -707,24 +686,12 @@ function memAmount($WebID = '')
 {
     global $xoopsDB;
 
-    $sql = 'select count(*) from ' . $xoopsDB->prefix('tad_web_link_mems') . " where WebID='{$WebID}'";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT COUNT(*) FROM `' . $xoopsDB->prefix('tad_web_link_mems') . '` WHERE `WebID` =?';
+    $result = Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     list($count) = $xoopsDB->fetchRow($result);
 
     return $count;
-}
-
-//判斷是否為管理員
-function isAdmin()
-{
-    global $xoopsUser, $xoopsModule;
-    $isAdmin = false;
-    if ($xoopsUser) {
-        $module_id = $xoopsModule->getVar('mid');
-        $isAdmin = $xoopsUser->isAdmin($module_id);
-    }
-
-    return $isAdmin;
 }
 
 //登出按鈕
@@ -762,21 +729,21 @@ function getAllCateName($ColName = '', $WebID = '', $CateID = '')
 //更新刪除時是否限制身份
 function onlyMine($uid_col = 'uid')
 {
-    global $xoopsUser, $isAdmin, $MyWebs, $WebID;
-    if ($isAdmin) {
+    global $xoopsUser, $MyWebs, $WebID;
+    if ($_SESSION['tad_web_adm']) {
         return;
     } elseif (in_array($WebID, $MyWebs)) {
         return;
     }
     $uid = $xoopsUser->uid();
 
-    return "and `{$uid_col}`='$uid'";
+    return "AND `{$uid_col}`='$uid'";
 }
 
 //以流水號取得某筆tad_web資料
 function get_tad_web($WebID = '', $enable = false, $use_session = true)
 {
-    global $xoopsDB, $isMyWeb, $isAdmin;
+    global $xoopsDB, $isMyWeb;
     if (empty($WebID)) {
         return;
     }
@@ -789,26 +756,35 @@ function get_tad_web($WebID = '', $enable = false, $use_session = true)
         return $_SESSION['tad_web'][$WebID];
     }
 
-    $andEnable = ($enable and !$isMyWeb and !$isAdmin) ? "and WebEnable='1'" : '';
+    $andEnable = ($enable and !$isMyWeb and !$_SESSION['tad_web_adm']) ? "AND `WebEnable`='1'" : '';
 
-    $sql = 'select * from ' . $xoopsDB->prefix('tad_web') . " where WebID='$WebID' {$andEnable}";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web') . '` WHERE `WebID`=? ' . $andEnable;
+    $result = Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
     $data = $xoopsDB->fetchArray($result);
-    $_SESSION['tad_web'][$WebID] = $data;
+    if ($data) {
+        if (_IS_EZCLASS) {
+            $used_size         = redis_do($WebID, 'get', '', 'used_size');
+            $data['used_size'] = $used_size;
+        }
 
-    if ($enable and (empty($data))) {
+        $_SESSION['tad_web'][$WebID] = $data;
+
+        if ($enable and (empty($data))) {
+            redirect_header('index.php', 3, _MD_TCW_WEB_NOT_EXIST);
+        }
+
+        return $data;
+    } else {
         redirect_header('index.php', 3, _MD_TCW_WEB_NOT_EXIST);
     }
-
-    return $data;
 }
 
 function get_web_uid($WebID)
 {
     global $xoopsDB;
-    $sql = 'select WebOwnerUid from ' . $xoopsDB->prefix('tad_web') . " where WebID='$WebID'";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql               = 'SELECT `WebOwnerUid` FROM `' . $xoopsDB->prefix('tad_web') . '` WHERE `WebID`=?';
+    $result            = Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
     list($WebOwnerUid) = $xoopsDB->fetchRow($result);
     return $WebOwnerUid;
 }
@@ -818,8 +794,9 @@ function getAllWebInfo($get_col = 'WebTitle')
 {
     global $xoopsDB;
 
-    $sql = "select `WebID`, `{$get_col}` from " . $xoopsDB->prefix('tad_web') . ' order by WebSort';
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT `WebID`, `' . $get_col . '` FROM `' . $xoopsDB->prefix('tad_web') . '` ORDER BY `WebSort`';
+    $result = Utility::query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $Webs = [];
     while (list($WebID, $data) = $xoopsDB->fetchRow($result)) {
         $Webs[$WebID] = $data;
@@ -832,27 +809,28 @@ function getAllWebInfo($get_col = 'WebTitle')
 function getLevelName($WebID = '')
 {
     global $xoopsDB;
-    $sql = 'select `WebTitle` from ' . $xoopsDB->prefix('tad_web') . " where WebID='$WebID'";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT `WebTitle` FROM `' . $xoopsDB->prefix('tad_web') . '` WHERE `WebID`=?';
+    $result = Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     list($WebTitle) = $xoopsDB->fetchRow($result);
 
-    return $main;
+    return $WebTitle;
 }
 
 //立即寄出
 function send_now($email = '', $title = '', $content = '', $ColName = '', $ColSN = '', $WebID = '')
 {
-    global $xoopsConfig, $xoopsDB, $xoopsModuleConfig;
+    global $xoopsDB;
 
-    $xoopsMailer = &getMailer();
+    $xoopsMailer                           = &getMailer();
     $xoopsMailer->multimailer->ContentType = 'text/html';
     $xoopsMailer->addHeaders('MIME-Version: 1.0');
     $msg = ($xoopsMailer->sendMail($email, $title, $content, $headers)) ? true : false;
 
     if ($ColName and $msg) {
         $now = date('Y-m-d H:i:s');
-        $sql = 'insert into ' . $xoopsDB->prefix('tad_web_mail_log') . " (`ColName`, `ColSN`, `WebID`, `Mail`, `MailDate`) values('{$ColName}', '{$ColSN}', '{$WebID}', '{$email}', '{$now}')";
-        $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'INSERT INTO `' . $xoopsDB->prefix('tad_web_mail_log') . '` (`ColName`, `ColSN`, `WebID`, `Mail`, `MailDate`) VALUES (?, ?, ?, ?, ?)';
+        Utility::query($sql, 'siiss', [$ColName, $ColSN, $WebID, $email, $now]) or Utility::web_error($sql, __FILE__, __LINE__);
     }
 
     return $msg;
@@ -862,89 +840,91 @@ function send_now($email = '', $title = '', $content = '', $ColName = '', $ColSN
 function mklogoPic($WebID = '')
 {
     $Class = get_tad_web($WebID);
-    $WebName = $Class['WebName'];
-    $WebTitle = $Class['WebTitle'];
+    if ($Class['WebName'] && $Class['WebTitle']) {
+        $WebName  = $Class['WebName'];
+        $WebTitle = $Class['WebTitle'];
 
-    if (function_exists('mb_strwidth')) {
-        $n = mb_strwidth($WebName) / 2;
-        $n2 = mb_strwidth($WebTitle) / 2;
-    } else {
-        $n = mb_strlen($WebName) / 3;
-        $n2 = mb_strlen($WebTitle) / 3;
+        if (function_exists('mb_strwidth')) {
+            $n  = mb_strwidth($WebName) / 2;
+            $n2 = mb_strwidth($WebTitle) / 2;
+        } else {
+            $n  = mb_strlen($WebName) / 3;
+            $n2 = mb_strlen($WebTitle) / 3;
+        }
+        // die('$n:' . $n);
+        //$width=50*$n+35;
+        // $size = round(800 / $n, 0);
+        // if ($size > 70) {
+        $size      = 60;
+        $pic_size1 = ($size + 24) * $n;
+        $x         = $size + 10;
+        $size2     = 20;
+        $pic_size2 = ($size2 + 8) * $n2;
+        // } else {
+        //     $x     = round(800 / $n, 0) + 10;
+        //     $size2 = 17;
+        // }
+        $y = $size + 65;
+
+        $pic_size = ($pic_size1 > $pic_size2) ? $pic_size1 : $pic_size2;
+
+        // header('Content-type: image/png');
+        $im = @imagecreatetruecolor($pic_size, 140) or die(_MD_TCW_MKPIC_ERROR);
+        imagesavealpha($im, true);
+
+        $white = imagecolorallocate($im, 255, 255, 255);
+
+        //$trans_colour = imagecolorallocatealpha($im, 157,211,223, 127);
+        $trans_colour = imagecolorallocatealpha($im, 255, 255, 255, 127);
+        imagefill($im, 0, 0, $trans_colour);
+
+        $text_color  = imagecolorallocate($im, 0, 0, 0);
+        $text_color2 = imagecolorallocatealpha($im, 255, 255, 255, 50);
+
+        $gd = gd_info();
+        if ($gd['JIS-mapped Japanese Font Support']) {
+            $WebTitle = iconv('UTF-8', 'shift_jis', $WebTitle);
+            $WebName  = iconv('UTF-8', 'shift_jis', $WebName);
+        }
+
+        imagettftext($im, $size, 0, 0, $x, $text_color, XOOPS_ROOT_PATH . '/modules/tad_web/class/font.ttf', $WebName);
+        imagettftextoutline(
+            $im, // image location ( you should use a variable )
+            $size, // font size
+            0, // angle in °
+            0, // x
+            $x, // y
+            $text_color,
+            $white,
+            XOOPS_ROOT_PATH . '/modules/tad_web/class/font.ttf',
+            $WebName, // pattern
+            2// outline width
+        );
+
+        imagettftext($im, $size2, 0, 0, $y, $text_color, XOOPS_ROOT_PATH . '/modules/tad_web/class/font.ttf', $WebTitle);
+        imagettftextoutline(
+            $im, // image location ( you should use a variable )
+            $size2, // font size
+            0, // angle in °
+            0, // x
+            $y, // y
+            $text_color,
+            $white,
+            XOOPS_ROOT_PATH . '/modules/tad_web/class/font.ttf',
+            $WebTitle, // pattern
+            1// outline width
+        );
+
+        Utility::mk_dir(XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}");
+        Utility::mk_dir(XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/auto_logo");
+
+        imagepng($im, XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/auto_logo/auto_logo.png");
+        imagedestroy($im);
     }
-    // die('$n:' . $n);
-    //$width=50*$n+35;
-    // $size = round(800 / $n, 0);
-    // if ($size > 70) {
-    $size = 60;
-    $pic_size1 = ($size + 24) * $n;
-    $x = $size + 10;
-    $size2 = 20;
-    $pic_size2 = ($size2 + 8) * $n2;
-    // } else {
-    //     $x     = round(800 / $n, 0) + 10;
-    //     $size2 = 17;
-    // }
-    $y = $size + 65;
-
-    $pic_size = ($pic_size1 > $pic_size2) ? $pic_size1 : $pic_size2;
-
-    // header('Content-type: image/png');
-    $im = @imagecreatetruecolor($pic_size, 140) or die(_MD_TCW_MKPIC_ERROR);
-    imagesavealpha($im, true);
-
-    $white = imagecolorallocate($im, 255, 255, 255);
-
-    //$trans_colour = imagecolorallocatealpha($im, 157,211,223, 127);
-    $trans_colour = imagecolorallocatealpha($im, 255, 255, 255, 127);
-    imagefill($im, 0, 0, $trans_colour);
-
-    $text_color = imagecolorallocate($im, 0, 0, 0);
-    $text_color2 = imagecolorallocatealpha($im, 255, 255, 255, 50);
-
-    $gd = gd_info();
-    if ($gd['JIS-mapped Japanese Font Support']) {
-        $WebTitle = iconv('UTF-8', 'shift_jis', $WebTitle);
-        $WebName = iconv('UTF-8', 'shift_jis', $WebName);
-    }
-
-    imagettftext($im, $size, 0, 0, $x, $text_color, XOOPS_ROOT_PATH . '/modules/tad_web/class/font.ttf', $WebName);
-    imagettftextoutline(
-        $im, // image location ( you should use a variable )
-        $size, // font size
-        0, // angle in °
-        0, // x
-        $x, // y
-        $text_color,
-        $white,
-        XOOPS_ROOT_PATH . '/modules/tad_web/class/font.ttf',
-        $WebName, // pattern
-        2// outline width
-    );
-
-    imagettftext($im, $size2, 0, 0, $y, $text_color, XOOPS_ROOT_PATH . '/modules/tad_web/class/font.ttf', $WebTitle);
-    imagettftextoutline(
-        $im, // image location ( you should use a variable )
-        $size2, // font size
-        0, // angle in °
-        0, // x
-        $y, // y
-        $text_color,
-        $white,
-        XOOPS_ROOT_PATH . '/modules/tad_web/class/font.ttf',
-        $WebTitle, // pattern
-        1// outline width
-    );
-
-    Utility::mk_dir(XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}");
-    Utility::mk_dir(XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/auto_logo");
-
-    imagepng($im, XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/auto_logo/auto_logo.png");
-    imagedestroy($im);
 }
 
 //製作logo圖
-function mkTitlePic($WebID = '', $filename = '', $title = '', $color = '#ABBF6B', $border_color = '#FFFFFF', $size = '30', $font = 'font.ttf')
+function mkTitleImg($WebID = '', $filename = '', $title = '', $color = '#ABBF6B', $border_color = '#FFFFFF', $size = '30', $font = 'font.ttf')
 {
     if (empty($title)) {
         return;
@@ -958,13 +938,13 @@ function mkTitlePic($WebID = '', $filename = '', $title = '', $color = '#ABBF6B'
     if (empty($size)) {
         return;
     }
-    $width = $size * 1.5 * $n;
+    $width  = $size * 1.5 * $n;
     $height = $size * 3;
 
     $x = 2;
     $y = $size * 2;
 
-    list($color_r, $color_g, $color_b) = sscanf($color, '#%02x%02x%02x');
+    list($color_r, $color_g, $color_b)                      = sscanf($color, '#%02x%02x%02x');
     list($border_color_r, $border_color_g, $border_color_b) = sscanf($border_color, '#%02x%02x%02x');
 
     // header('Content-type: image/png');
@@ -974,7 +954,7 @@ function mkTitlePic($WebID = '', $filename = '', $title = '', $color = '#ABBF6B'
     $trans_colour = imagecolorallocatealpha($im, 255, 255, 255, 127);
     imagefill($im, 0, 0, $trans_colour);
 
-    $text_color = imagecolorallocate($im, $color_r, $color_g, $color_b);
+    $text_color        = imagecolorallocate($im, $color_r, $color_g, $color_b);
     $text_border_color = imagecolorallocatealpha($im, $border_color_r, $border_color_g, $border_color_b, 50);
 
     $gd = gd_info();
@@ -1035,9 +1015,8 @@ function import_img($path = '', $col_name = 'logo', $col_sn = '', $desc = '', $s
 
     $db_files = [];
 
-    $sql = 'select files_sn,file_name,original_filename from ' . $xoopsDB->prefix('tad_web_files_center') . " where col_name='{$col_name}' and col_sn='{$col_sn}'";
-
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql             = 'SELECT `files_sn`,`file_name`,`original_filename` FROM `' . $xoopsDB->prefix('tad_web_files_center') . '` WHERE `col_name`=? AND `col_sn`=?';
+    $result          = Utility::query($sql, 'si', [$col_name, $col_sn]) or Utility::web_error($sql, __FILE__, __LINE__);
     $db_files_amount = 0;
     while (list($files_sn, $file_name, $original_filename) = $xoopsDB->fetchRow($result)) {
         $db_files[$files_sn] = $original_filename;
@@ -1070,7 +1049,7 @@ function import_img($path = '', $col_name = 'logo', $col_sn = '', $desc = '', $s
 }
 
 //移除預設圖片
-function fixed_img($uploads_path = '', $col_name = 'logo', $col_sn = '', $TadUpFiles)
+function fixed_img($TadUpFiles, $uploads_path = '', $col_name = 'logo', $col_sn = '')
 {
     global $xoopsDB;
 
@@ -1090,12 +1069,17 @@ function fixed_img($uploads_path = '', $col_name = 'logo', $col_sn = '', $TadUpF
 
     $db_files = [];
 
-    $sql = 'update ' . $xoopsDB->prefix('tad_web_files_center') . " set `sub_dir`= '/{$col_sn}/{$col_name}' WHERE `col_name` = '{$col_name}' and col_sn='{$col_sn}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = "UPDATE " . $xoopsDB->prefix('tad_web_files_center') . "
+    SET `sub_dir` = ?
+    WHERE `col_name` = ? AND `col_sn` = ?";
+    Utility::query($sql, 'ssi', ["/{$col_sn}/{$col_name}", $col_name, $col_sn]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $sql = 'select files_sn,file_name,original_filename from ' . $xoopsDB->prefix('tad_web_files_center') . " where col_name='{$col_name}' and col_sn='{$col_sn}'";
+    $sql = "SELECT files_sn, file_name, original_filename
+    FROM " . $xoopsDB->prefix('tad_web_files_center') . "
+    WHERE col_name = ? AND col_sn = ?";
 
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $result = Utility::query($sql, 'si', [$col_name, $col_sn]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $db_files_amount = 0;
     while (list($files_sn, $file_name, $original_filename) = $xoopsDB->fetchRow($result)) {
         $db_files[$files_sn] = $original_filename;
@@ -1112,9 +1096,9 @@ function fixed_img($uploads_path = '', $col_name = 'logo', $col_sn = '', $TadUpF
                 if ('.' === $file or '..' === $file or 'Thumbs.db' === $file or 'thumbs.db' === $file) {
                     continue;
                 }
-                $pic = "$uploads_path/$file";
+                $pic       = "$uploads_path/$file";
                 $thumb_pic = "$uploads_path/thumbs/$file";
-                $type = filetype($pic);
+                $type      = filetype($pic);
 
                 if ('dir' !== $type) {
                     if (in_array($file, $db_files)) {
@@ -1124,9 +1108,7 @@ function fixed_img($uploads_path = '', $col_name = 'logo', $col_sn = '', $TadUpF
                     } elseif (is_link($pic)) {
                         unlink($pic);
                     } elseif (!file_exists($thumb_pic)) {
-                        $mime_content_type = mime_content_type($pic);
-                        // die("thumbnail($pic, $thumb_pic)");
-                        thumbnail($pic, $thumb_pic, $mime_content_type);
+                        Utility::generateThumbnail($pic, $thumb_pic);
                     }
                 }
             }
@@ -1137,63 +1119,6 @@ function fixed_img($uploads_path = '', $col_name = 'logo', $col_sn = '', $TadUpF
     if (is_link($uploads_path . '/thumbs')) {
         delete_tad_web_directory($uploads_path . '/thumbs');
         Utility::mk_dir($uploads_path . '/thumbs');
-    }
-
-}
-
-function thumbnail($filename = '', $thumb_name = '', $type = 'image/jpeg', $width = '240', $angle = 0)
-{
-    set_time_limit(0);
-    ini_set('memory_limit', '300M');
-    // Get new sizes
-    list($old_width, $old_height) = getimagesize($filename);
-
-    if (0 != $angle) {
-        $h = $old_height;
-        $w = $old_width;
-
-        $old_width = $h;
-        $old_height = $w;
-    }
-
-    // die("$old_width, $old_height");
-
-    if ($old_width > $width) {
-        $percent = ($old_width > $old_height) ? round($width / $old_width, 2) : round($width / $old_height, 2);
-
-        $newwidth = ($old_width > $old_height) ? $width : $old_width * $percent;
-        $newheight = ($old_width > $old_height) ? $old_height * $percent : $width;
-
-        // Load
-        $thumb = imagecreatetruecolor($newwidth, $newheight);
-        ob_start();
-        if ('image/jpeg' === $type or 'image/jpg' === $type or 'image/pjpg' === $type or 'image/pjpeg' === $type) {
-            $source = imagecreatefromjpeg($filename);
-
-            $type = 'image/jpeg';
-        } elseif ('image/png' === $type) {
-            $source = imagecreatefrompng($filename);
-            $type = 'image/png';
-        } elseif ('image/gif' === $type) {
-            $source = imagecreatefromgif($filename);
-            $type = 'image/gif';
-        }
-        if (0 != $angle) {
-            $source = imagerotate($source, $angle, 0);
-        }
-        // Resize
-        imagecopyresampled($thumb, $source, 0, 0, 0, 0, $newwidth, $newheight, $old_width, $old_height);
-
-        // header("Content-type: $type");
-        if ('image/jpeg' === $type) {
-            imagejpeg($thumb, $thumb_name);
-        } elseif ('image/png' === $type) {
-            imagepng($thumb, $thumb_name);
-        } elseif ('image/gif' === $type) {
-            imagegif($thumb, $thumb_name);
-        }
-        ob_end_clean();
-        return;
     }
 }
 
@@ -1212,8 +1137,8 @@ function get_default_img($dir)
 
                 if ('dir' != $type and '.' != substr($file, 0, 1) and strpos($file, '.db') === false) {
                     $data['file_name'] = $file;
-                    $data['tb_path'] = str_replace(XOOPS_ROOT_PATH, XOOPS_URL, "{$dir}thumbs/{$file}");
-                    $files[$file] = $data;
+                    $data['tb_path']   = str_replace(XOOPS_ROOT_PATH, XOOPS_URL, "{$dir}thumbs/{$file}");
+                    $files[$file]      = $data;
                 }
             }
             closedir($dh);
@@ -1221,16 +1146,13 @@ function get_default_img($dir)
     }
 
     ksort($files, SORT_NATURAL);
-    // if (strpos($dir, 'head') !== false and $_GET['test'] == 1) {
-    //     Utility::dd($files);
-    // }
+
     return $files;
 }
 
 //匯入圖檔
 function import_file($file_name = '', $col_name = '', $col_sn = '', $main_width = '', $thumb_width = '90', $desc = '', $safe_name = false)
 {
-    global $xoopsDB, $xoopsUser, $xoopsModule, $xoopsConfig;
 
     $slink = (PATH_SEPARATOR === ':') ? true : false;
     if ('bg' === $col_name) {
@@ -1290,10 +1212,9 @@ function TadUpFilesHead($WebID)
 //取得tad_web_cate分類選單的選項（單層選單）
 function get_tad_web_cate_menu_options($default_CateID = '0')
 {
-    global $xoopsDB, $xoopsModule;
-    $sql = 'select `CateID`, `CateName`
-    from `' . $xoopsDB->prefix('tad_web_cate') . '` order by `CateSort`';
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    global $xoopsDB;
+    $sql    = 'SELECT `CateID`, `CateName` FROM `' . $xoopsDB->prefix('tad_web_cate') . '` ORDER BY `CateSort`';
+    $result = Utility::query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
 
     $option = '';
     while (list($CateID, $CateName) = $xoopsDB->fetchRow($result)) {
@@ -1307,16 +1228,17 @@ function get_tad_web_cate_menu_options($default_CateID = '0')
 //取得所有分類下的網站
 function get_web_cate_arr()
 {
-    global $xoopsDB, $isAdmin, $MyWebs;
+    global $xoopsDB, $MyWebs;
 
     if (!isset($MyWebs)) {
-        $MyWebs = MyWebID();
+        $MyWebs = TadWebTools::MyWebID();
     }
 
-    $other_web_url_arr = get_web_config('other_web_url');
+    $other_web_url_arr = TadWebTools::get_web_config('other_web_url');
 
-    $sql = 'select * from `' . $xoopsDB->prefix('tad_web') . "` where WebEnable='1' and WebID > 0 order by WebSort,WebTitle";
-    $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web') . '` WHERE `WebEnable`=? AND `WebID` > 0 ORDER BY `WebSort`, `WebTitle`';
+    $result = Utility::query($sql, 's', ['1']) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $data_arr = [];
     while (false !== ($all = $xoopsDB->fetchArray($result))) {
         foreach ($all as $k => $v) {
@@ -1325,9 +1247,9 @@ function get_web_cate_arr()
         if (empty($WebID)) {
             continue;
         }
-        $all['other_web_url'] = isset($other_web_url_arr[$WebID]) ? $other_web_url_arr[$WebID] : '';
-        $all['isMyWeb'] = ($isAdmin) ? true : in_array($WebID, $MyWebs);
-        $data_arr[$CateID][$WebID] = $all;
+        $all['other_web_url']               = isset($other_web_url_arr[$WebID]) ? $other_web_url_arr[$WebID] : '';
+        $all['isMyWeb']                     = ($_SESSION['tad_web_adm']) ? true : in_array($WebID, $MyWebs);
+        $data_arr[$CateID][$WebID]          = $all;
         $data_arr[$CateID]['WebID'][$WebID] = $WebID;
     }
     //die(var_export($data_arr));
@@ -1337,7 +1259,6 @@ function get_web_cate_arr()
 //製作文字圖片
 function output_head_file($WebID)
 {
-    global $xoopsUser;
     if (empty($WebID)) {
         return;
     }
@@ -1347,11 +1268,9 @@ function output_head_file($WebID)
         unlink($filename);
     }
 
-    $width = 1140;
-    $height = 200;
-    //die('test2=' . $WebID);
+    $width      = 1280;
+    $height     = 240;
     $all_config = get_web_all_config($WebID);
-    //die("<h2>$WebID</h2>" . var_export($all_config));
     foreach ($all_config as $k => $v) {
         $$k = $v;
     }
@@ -1368,36 +1287,33 @@ function output_head_file($WebID)
     switch ($type) {
         case 'bmp':
             $bg_im = imagecreatefromwbmp($bg_filename);
-            $mimetype = 'image/bmp';
             break;
         case 'gif':
             $bg_im = imagecreatefromgif($bg_filename);
-            $mimetype = 'image/gif';
             break;
         case 'jpg':
             $bg_im = imagecreatefromjpeg($bg_filename);
-            $mimetype = 'image/jpeg';
             break;
         case 'png':
             $bg_im = imagecreatefrompng($bg_filename);
-            $mimetype = 'image/png';
             break;
-        default:return 'Unsupported picture type!';
+        default:
+            return 'Unsupported picture type!';
     }
 
     if ($width != $bg_width) {
-        thumbnail(XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/head/{$web_head}", XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/head/{$web_head}", $mimetype, $width);
+        Utility::generateThumbnail(XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/head/{$web_head}", XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/head/{$web_head}", $width);
     }
 
     $im = @imagecreatetruecolor($width, $height);
     imagecolortransparent($im, imagecolorallocatealpha($im, 0, 0, 0, 127));
     imagealphablending($im, true);
     imagesavealpha($im, true);
-    if (file_exists($bg_filename)) {
+    if (file_exists($bg_filename) && $bg_im !== false) {
         //縮放比例
-        $rate = round($bg_width / $width, 4);
+        $rate     = round($bg_width / $width, 4);
         $head_top = abs($head_top);
-        $bg_top = round($head_top * $rate, 0);
+        $bg_top   = round($head_top * $rate, 0);
 
         //背景圖
         imagecopyresampled($im, $bg_im, 0, 0, 0, $bg_top, $width, $bg_height, $bg_width, $bg_height);
@@ -1413,18 +1329,23 @@ function output_head_file($WebID)
         }
 
         switch ($type) {
-            case 'bmp':$logo_im = imagecreatefromwbmp($logo_filename);
+            case 'bmp':
+                $logo_im = imagecreatefromwbmp($logo_filename);
                 break;
-            case 'gif':$logo_im = imagecreatefromgif($logo_filename);
+            case 'gif':
+                $logo_im = imagecreatefromgif($logo_filename);
                 break;
-            case 'jpg':$logo_im = imagecreatefromjpeg($logo_filename);
+            case 'jpg':
+                $logo_im = imagecreatefromjpeg($logo_filename);
                 break;
-            case 'png':$logo_im = imagecreatefrompng($logo_filename);
+            case 'png':
+                $logo_im = imagecreatefrompng($logo_filename);
                 imagecolortransparent($logo_im, imagecolorallocatealpha($logo_im, 0, 0, 0, 127));
                 imagealphablending($logo_im, true);
                 imagesavealpha($logo_im, true);
                 break;
-            default:return 'Unsupported picture type!';
+            default:
+                return 'Unsupported picture type!';
         }
 
         //logo圖
@@ -1453,8 +1374,8 @@ function output_head_file_480($WebID)
         unlink($filename);
     }
 
-    $width = 400;
-    $height = 200;
+    $width      = 400;
+    $height     = 200;
     $all_config = get_web_all_config($WebID);
     foreach ($all_config as $k => $v) {
         $$k = $v;
@@ -1470,10 +1391,11 @@ function output_head_file_480($WebID)
         list($bg_width, $bg_height) = getimagesize($bg_filename);
 
         //縮放比例
-        $rate = round($width / $bg_width, 2);
+        $bg_width      = empty($bg_width) ? 1 : $bg_width;
+        $rate          = round($width / $bg_width, 2);
         $new_bg_height = round($bg_height * $rate, 0);
-        $bg_top = round($head_top * $rate, 0);
-        $new_bg_width = $width;
+        $bg_top        = round($head_top * $rate, 0);
+        $new_bg_width  = $width;
 
         $type = mb_strtolower(mb_substr(mb_strrchr($bg_filename, '.'), 1));
         if ('jpeg' === $type) {
@@ -1481,15 +1403,20 @@ function output_head_file_480($WebID)
         }
 
         switch ($type) {
-            case 'bmp':$bg_im = imagecreatefromwbmp($bg_filename);
+            case 'bmp':
+                $bg_im = imagecreatefromwbmp($bg_filename);
                 break;
-            case 'gif':$bg_im = imagecreatefromgif($bg_filename);
+            case 'gif':
+                $bg_im = imagecreatefromgif($bg_filename);
                 break;
-            case 'jpg':$bg_im = imagecreatefromjpeg($bg_filename);
+            case 'jpg':
+                $bg_im = imagecreatefromjpeg($bg_filename);
                 break;
-            case 'png':$bg_im = imagecreatefrompng($bg_filename);
+            case 'png':
+                $bg_im = imagecreatefrompng($bg_filename);
                 break;
-            default:return 'Unsupported picture type!';
+            default:
+                return 'Unsupported picture type!';
         }
 
         // $head_top = abs($head_top);
@@ -1497,15 +1424,18 @@ function output_head_file_480($WebID)
 
         //背景圖
         // die("$rate, $bg_top, $bg_width, $bg_height, $bg_width, $bg_height");
-        imagecopyresampled($im, $bg_im, 0, 0, 0, 0, $new_bg_width, $new_bg_height, $bg_width, $bg_height);
+        if ($bg_im !== false) {
+            imagecopyresampled($im, $bg_im, 0, 0, 0, 0, $new_bg_width, $new_bg_height, $bg_width, $bg_height);
+        }
+
     }
 
     $logo_filename = XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/logo/{$web_logo}";
     if (file_exists($logo_filename)) {
         list($logo_width, $logo_height) = getimagesize($logo_filename);
-
-        $new_logo_height = round($logo_height * (380 / $logo_width), 0);
-        $new_logo_width = 380;
+        $logo_width                     = empty($logo_width) ? 1 : $logo_width;
+        $new_logo_height                = round($logo_height * (380 / $logo_width), 0);
+        $new_logo_width                 = 380;
 
         $type = mb_strtolower(mb_substr(mb_strrchr($logo_filename, '.'), 1));
         if ('jpeg' === $type) {
@@ -1513,22 +1443,27 @@ function output_head_file_480($WebID)
         }
 
         switch ($type) {
-            case 'bmp':$logo_im = imagecreatefromwbmp($logo_filename);
+            case 'bmp':
+                $logo_im = imagecreatefromwbmp($logo_filename);
                 break;
-            case 'gif':$logo_im = imagecreatefromgif($logo_filename);
+            case 'gif':
+                $logo_im = imagecreatefromgif($logo_filename);
                 break;
-            case 'jpg':$logo_im = imagecreatefromjpeg($logo_filename);
+            case 'jpg':
+                $logo_im = imagecreatefromjpeg($logo_filename);
                 break;
-            case 'png':$logo_im = imagecreatefrompng($logo_filename);
+            case 'png':
+                $logo_im = imagecreatefrompng($logo_filename);
                 imagecolortransparent($logo_im, imagecolorallocatealpha($logo_im, 0, 0, 0, 127));
                 imagealphablending($logo_im, true);
                 imagesavealpha($logo_im, true);
                 break;
-            default:return 'Unsupported picture type!';
+            default:
+                return 'Unsupported picture type!';
         }
 
         $logo_left = ($width - $new_logo_width) / 2;
-        $logo_top = ($height - $new_logo_height) / 2;
+        $logo_top  = ($height - $new_logo_height) / 2;
 
         //logo圖
         imagecopyresampled($im, $logo_im, $logo_left, $logo_top, 0, 0, $new_logo_width, $new_logo_height, $logo_width, $logo_height);
@@ -1574,17 +1509,17 @@ function check_quota($WebID = '')
 {
     global $xoopsDB;
     $data = '';
-    $dir = XOOPS_ROOT_PATH . '/uploads/tad_web/';
+    $dir  = XOOPS_ROOT_PATH . '/uploads/tad_web/';
 
     $dir_size = get_dir_size("{$dir}{$WebID}/");
-    $size = size2mb($dir_size);
+    $size     = size2mb($dir_size);
     save_web_config('used_size', $size, $WebID);
 
     if (_IS_EZCLASS) {
         redis_do($WebID, 'set', '', 'used_size', $dir_size);
     } else {
-        $sql = 'update `' . $xoopsDB->prefix('tad_web') . "` set `used_size`='{$dir_size}' where `WebID`='{$WebID}'";
-        $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'UPDATE `' . $xoopsDB->prefix('tad_web') . '` SET `used_size`=? WHERE `WebID`=?';
+        Utility::query($sql, 'ii', [$dir_size, $WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
     }
 
     $_SESSION['tad_web'][$WebID]['used_size'] = $dir_size;
@@ -1601,7 +1536,7 @@ function get_quota($WebID = '')
 
     $user_default_quota = empty($xoopsModuleConfig['user_space_quota']) ? 500 : (int) $xoopsModuleConfig['user_space_quota'];
 
-    $space_quota = get_web_config('space_quota', $WebID, 'db');
+    $space_quota = TadWebTools::get_web_config('space_quota', $WebID, 'db');
 
     $user_space_quota = (empty($space_quota) or 'default' === $space_quota) ? $user_default_quota : (int) $space_quota;
 
@@ -1620,7 +1555,7 @@ function size2mb($size)
 
 function roundsize($size)
 {
-    $i = 0;
+    $i   = 0;
     $iec = ['B', 'KB', 'MB', 'GB', 'TB', 'EB', 'ZB', 'YB'];
     while (($size / 1024) > 1) {
         $size = $size / 1024;
@@ -1666,15 +1601,16 @@ function get_plugin_setup_values($WebID = '', $plugin = '')
     if (file_exists($plugin_setup_values_file)) {
         $values = json_decode(file_get_contents($plugin_setup_values_file), true);
     } else {
-        $myts = \MyTextSanitizer::getInstance();
+        $myts       = \MyTextSanitizer::getInstance();
         $setup_file = XOOPS_ROOT_PATH . "/modules/tad_web/plugins/{$plugin}/setup.php";
         if (file_exists($setup_file)) {
             require_once XOOPS_ROOT_PATH . "/modules/tad_web/plugins/{$plugin}/langs/{$xoopsConfig['language']}.php";
             require $setup_file;
         }
 
-        $sql = 'select `name`, `type`, `value` from ' . $xoopsDB->prefix('tad_web_plugins_setup') . " where `WebID`='{$WebID}' and plugin='{$plugin}'";
-        $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql    = 'SELECT `name`, `type`, `value` FROM `' . $xoopsDB->prefix('tad_web_plugins_setup') . '` WHERE `WebID`=? AND `plugin`=?';
+        $result = Utility::query($sql, 'is', [$WebID, $plugin]) or Utility::web_error($sql, __FILE__, __LINE__);
+
         $setup_db_values = [];
         //`theme_id`, `name`, `type`, `value`
         while (list($name, $type, $value) = $xoopsDB->fetchRow($result)) {
@@ -1682,8 +1618,8 @@ function get_plugin_setup_values($WebID = '', $plugin = '')
         }
 
         foreach ($plugin_setup as $k => $setup) {
-            $name = $setup['name'];
-            $value = isset($setup_db_values[$name]) ? $myts->htmlSpecialChars($setup_db_values[$name]) : $setup['default'];
+            $name          = $setup['name'];
+            $value         = isset($setup_db_values[$name]) ? $myts->htmlSpecialChars($setup_db_values[$name]) : $setup['default'];
             $values[$name] = $value;
         }
 
@@ -1702,14 +1638,15 @@ function delete_tad_web_chk($WebID = '', $g2p = 0)
     }
 
     $pluginsVal = get_db_plugins($WebID);
-    $i = 0;
+    $i          = 0;
     foreach ($pluginsVal as $dirname => $plugin) {
-        $plugins[$i]['dirname'] = $dirname;
+        $plugins[$i]['dirname']     = $dirname;
         $plugins[$i]['PluginTitle'] = $plugin['PluginTitle'];
-
-        require_once XOOPS_ROOT_PATH . "/modules/tad_web/plugins/{$dirname}/class.php";
-        $plugin_name = "tad_web_{$dirname}";
-        $$plugin_name = new $plugin_name($WebID);
+        $plugin_name                = "tad_web_{$dirname}";
+        if (!class_exists($$plugin_name)) {
+            require_once XOOPS_ROOT_PATH . "/modules/tad_web/plugins/{$dirname}/class.php";
+            $$plugin_name = new $plugin_name($WebID);
+        }
         $plugins[$i]['total'] = $$plugin_name->get_total();
 
         $i++;
@@ -1729,44 +1666,46 @@ function delete_tad_web($WebID = '')
     }
 
     $pluginsVal = get_db_plugins($WebID);
-    $i = 0;
+    $i          = 0;
     foreach ($pluginsVal as $dirname => $plugin) {
-        $plugins[$i]['dirname'] = $dirname;
+        $plugins[$i]['dirname']     = $dirname;
         $plugins[$i]['PluginTitle'] = $plugin['PluginTitle'];
-
-        require_once XOOPS_ROOT_PATH . "/modules/tad_web/plugins/{$dirname}/class.php";
-        $plugin_name = "tad_web_{$dirname}";
-        $$plugin_name = new $plugin_name($WebID);
+        $plugin_name                = "tad_web_{$dirname}";
+        if (!class_exists($$plugin_name)) {
+            require_once XOOPS_ROOT_PATH . "/modules/tad_web/plugins/{$dirname}/class.php";
+            $$plugin_name = new $plugin_name($WebID);
+        }
         $$plugin_name->delete_all();
 
         $i++;
     }
-    $sql = 'delete from ' . $xoopsDB->prefix('tad_web_tags') . " where WebID='{$WebID}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_tags') . '` WHERE `WebID` = ?';
+    Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $sql = 'delete from ' . $xoopsDB->prefix('tad_web_power') . " where WebID='{$WebID}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_power') . '` WHERE `WebID` = ?';
+    Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $sql = 'delete from ' . $xoopsDB->prefix('tad_web_blocks') . " where WebID='{$WebID}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_blocks') . '` WHERE `WebID` = ?';
+    Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $sql = 'delete from ' . $xoopsDB->prefix('tad_web_plugins_setup') . " where WebID='{$WebID}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_plugins_setup') . '` WHERE `WebID` = ?';
+    Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $sql = 'delete from ' . $xoopsDB->prefix('tad_web_plugins') . " where WebID='{$WebID}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_plugins') . '` WHERE `WebID` = ?';
+    Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $sql = 'delete from ' . $xoopsDB->prefix('tad_web_roles') . " where WebID='{$WebID}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_roles') . '` WHERE `WebID` = ?';
+    Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $sql = 'delete from ' . $xoopsDB->prefix('tad_web_config') . " where WebID='{$WebID}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_config') . '` WHERE `WebID` = ?';
+    Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $sql = 'delete from ' . $xoopsDB->prefix('tad_web_cate') . " where WebID='{$WebID}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_cate') . '` WHERE `WebID` = ?';
+    Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
-    $sql = 'delete from ' . $xoopsDB->prefix('tad_web') . " where WebID='{$WebID}'";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web') . '` WHERE `WebID` = ?';
+    Utility::query($sql, 'i', [$WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     unset($_SESSION['tad_web'][$WebID]);
 
     $file = XOOPS_ROOT_PATH . "/uploads/tad_web/{$WebID}/web_config.php";
@@ -1794,23 +1733,25 @@ function update_last_accessed($WebID = '')
     if (_IS_EZCLASS) {
         redis_do($WebID, 'set', '', 'last_accessed', $last_accessed);
     } else {
-        $sql = 'update `' . $xoopsDB->prefix('tad_web') . "` set `last_accessed`='{$last_accessed}' where `WebID`='{$WebID}'";
-        $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'UPDATE `' . $xoopsDB->prefix('tad_web') . '` SET `last_accessed`=? WHERE `WebID`=?';
+        Utility::query($sql, 'si', [$last_accessed, $WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
     }
-
 }
 
 function redis_do($WebID, $act = 'set', $plugin = '', $key = '', $value = '')
 {
     if (class_exists('Redis')) {
         $redis = new Redis();
-        $redis->connect('120.115.2.85', 6379);
+        // $redis->connect('120.115.2.85', 6379);
+        $redis->connect('127.0.0.1', 6379);
         $KEY = !empty($plugin) ? "$WebID:$plugin:$key" : "$WebID:$key";
+
         if ($act == 'set') {
             return $redis->set($KEY, $value);
         } elseif ($act == 'incr') {
             return $redis->incr($KEY);
         } else {
+
             return $redis->get($KEY);
         }
     }
@@ -1828,7 +1769,7 @@ function get_article_content($content, $page = 1)
     $article = ['info' => [], 'pages' => 1];
 
     if (!empty($content)) {
-        $pattern = "/<div style=\"page-break-after: always;?\">\s*<span style=\"display: none;?\">&nbsp;<\/span>\s*<\/div>/";
+        $pattern  = "/<div style=\"page-break-after: always;?\">\s*<span style=\"display: none;?\">&nbsp;<\/span>\s*<\/div>/";
         $contents = preg_split($pattern, $content);
 
         $article['pages'] = count($contents);
@@ -1841,37 +1782,6 @@ function get_article_content($content, $page = 1)
     return $article;
 }
 
-function fb_comments($use = true)
-{
-    if (!$use) {
-        return;
-    }
-    $http = 'http://';
-    if (!empty($_SERVER['HTTPS'])) {
-        $http = ($_SERVER['HTTPS'] === 'on') ? 'https://' : 'http://';
-    }
-
-    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-        $http = $_SERVER['HTTP_X_FORWARDED_PROTO'] . '://';
-    }
-
-    $url = "{$http}{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
-
-    $main = "
-    <div id=\"fb-root\"></div>
-    <script>(function(d, s, id) {
-        var js, fjs = d.getElementsByTagName(s)[0];
-        if (d.getElementById(id)) return;
-        js = d.createElement(s); js.id = id;
-        js.src = \"//connect.facebook.net/zh_TW/sdk.js#xfbml=1&version=v2.5&appId=536429359858958\";
-        fjs.parentNode.insertBefore(js, fjs);
-    }(document, 'script', 'facebook-jssdk'));</script>
-    <div class=\"fb-comments\" data-href=\"{$url}\" data-width=\"100%\" data-numposts=\"10\"></div>
-    ";
-
-    return $main;
-}
-
 //以流水號取得某筆tad_web_notice資料
 function get_tad_web_notice($NoticeID = '')
 {
@@ -1881,10 +1791,9 @@ function get_tad_web_notice($NoticeID = '')
         return;
     }
 
-    $sql = 'select * from `' . $xoopsDB->prefix('tad_web_notice') . "`
-    where `NoticeID` = '{$NoticeID}'";
-    $result = $xoopsDB->query($sql)
-    or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql    = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_notice') . '` WHERE `NoticeID` = ?';
+    $result = Utility::query($sql, 'i', [$NoticeID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $data = $xoopsDB->fetchArray($result);
 
     return $data;
@@ -1893,26 +1802,10 @@ function get_tad_web_notice($NoticeID = '')
 //取得系統預設的OpenID登入方式
 function get_sys_openid()
 {
-    global $xoopsConfig;
-    $auth_method = [];
-    $moduleHandler = xoops_getHandler('module');
-    $configHandler = xoops_getHandler('config');
-    $TadLoginXoopsModule = $moduleHandler->getByDirname('tad_login');
-    if ($TadLoginXoopsModule) {
-        require_once XOOPS_ROOT_PATH . '/modules/tad_login/function.php';
-        xoops_loadLanguage('county', 'tad_login');
-        // if (function_exists('facebook_login')) {
-        //     $tad_login['facebook'] = facebook_login('return');
-        // }
-
-        // if (function_exists('google_login')) {
-        //     $tad_login['google'] = google_login('return');
-        // }
-
-        $configHandler = xoops_getHandler('config');
-        $modConfig = $configHandler->getConfigsByCat(0, $TadLoginXoopsModule->getVar('mid'));
-
-        $auth_method = $modConfig['auth_method'];
+    $auth_method          = [];
+    $TadLoginModuleConfig = Utility::getXoopsModuleConfig('tad_login');
+    if ($TadLoginModuleConfig) {
+        $auth_method = $TadLoginModuleConfig['auth_method'];
     }
 
     return $auth_method;
@@ -1926,17 +1819,14 @@ function set_assistant($WebID, $CateID = '', $MemID = '', $plugin = '')
         return;
     }
 
-    $myts = \MyTextSanitizer::getInstance();
-    $plugin = $myts->addSlashes($plugin);
-
-    $sql = 'insert into `' . $xoopsDB->prefix('tad_web_cate_assistant') . "` (`CateID`, `AssistantType`, `AssistantID`, `plugin`) values('{$CateID}', 'MemID', '{$MemID}', '{$plugin}')";
-    $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'INSERT INTO `' . $xoopsDB->prefix('tad_web_cate_assistant') . '` (`CateID`, `AssistantType`, `AssistantID`, `plugin`) VALUES (?, ?, ?, ?)';
+    Utility::query($sql, 'isis', [$CateID, 'MemID', $MemID, $plugin]) or Utility::web_error($sql, __FILE__, __LINE__);
 }
 
 //儲存小幫手的編輯紀錄
-function save_assistant_post($plugin = '', $CateID = '', $ColName = '', $ColSN = '')
+function save_assistant_post($WebID, $plugin = '', $CateID = '', $ColName = '', $ColSN = '')
 {
-    global $xoopsDB, $xoopsUser;
+    global $xoopsDB;
 
     if (empty($ColName) or empty($ColSN)) {
         return;
@@ -1948,22 +1838,8 @@ function save_assistant_post($plugin = '', $CateID = '', $ColName = '', $ColSN =
         return;
     }
 
-    $sql = 'replace into `' . $xoopsDB->prefix('tad_web_assistant_post') . "` (
-            `plugin`,
-            `ColName`,
-            `ColSN`,
-            `CateID`,
-            `AssistantType`,
-            `AssistantID`
-        ) values(
-            '{$plugin}',
-            '{$ColName}',
-            '{$ColSN}',
-            '{$CateID}',
-            '{$_SESSION['AssistantType'][$CateID]}',
-            '{$AssistantID}'
-        )";
-    $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+    $sql = 'REPLACE INTO `' . $xoopsDB->prefix('tad_web_assistant_post') . '` ( `plugin`, `ColName`, `ColSN`, `CateID`, `AssistantType`, `AssistantID` ) VALUES ( ?, ?, ?, ?, ?, ? )';
+    Utility::query($sql, 'ssiisi', [$plugin, $ColName, $ColSN, $CateID, $_SESSION['AssistantType'][$CateID], $AssistantID]) or Utility::web_error($sql, __FILE__, __LINE__);
     clear_assistant_cache($WebID, $plugin);
 }
 
@@ -1972,15 +1848,12 @@ function is_assistant($WebID, $plugin = '', $DefCateID = '', $DefColName = '', $
 {
     global $xoopsDB;
     $assistant_cache_file = XOOPS_VAR_PATH . "/tad_web/$WebID/$plugin/assistants.json";
-
+    $mems                 = [];
     if (file_exists($assistant_cache_file)) {
         $mems = json_decode(file_get_contents($assistant_cache_file), true);
     } else {
-        $sql = "select b.ColName, b.ColSN, b.CateID, b.AssistantType, b.AssistantID from `" . $xoopsDB->prefix('tad_web_cate') . "` as a
-        join  `" . $xoopsDB->prefix('tad_web_assistant_post') . "` as b on a.CateID =b.CateID
-        where a.`WebID`='{$WebID}' and b.`plugin`='$plugin'";
-
-        $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql    = 'SELECT b.`ColName`, b.`ColSN`, b.`CateID`, b.`AssistantType`, b.`AssistantID` FROM `' . $xoopsDB->prefix('tad_web_cate') . '` AS a JOIN `' . $xoopsDB->prefix('tad_web_assistant_post') . '` AS b ON a.`CateID`=b.`CateID` WHERE a.`WebID`=? AND b.`plugin`=?';
+        $result = Utility::query($sql, 'is', [$WebID, $plugin]) or Utility::web_error($sql, __FILE__, __LINE__);
         while (list($ColName, $ColSN, $CateID, $AssistantType, $AssistantID) = $xoopsDB->fetchRow($result)) {
             if ('MemID' === $AssistantType) {
                 $mem = get_tad_web_mems($AssistantID);
@@ -1991,14 +1864,15 @@ function is_assistant($WebID, $plugin = '', $DefCateID = '', $DefColName = '', $
         }
         file_put_contents($assistant_cache_file, json_encode($mems, 256));
     }
-
-    return $mems[$DefCateID][$DefColName][$DefColSN];
+    if (isset($mems[$DefCateID][$DefColName][$DefColSN])) {
+        return $mems[$DefCateID][$DefColName][$DefColSN];
+    }
 }
 
 //是否有管理權（或由自己發布的），判斷是否要秀出管理工具
 function isCanEdit($WebID = null, $plugin = '', $CateID = '', $ColName = '', $ColSN = '')
 {
-    global $isMyWeb, $isAdmin;
+    global $isMyWeb;
 
     // $_SESSION['isAssistant'][$plugin] = $CateID;
     // $_SESSION['AssistantType'][$CateID]   = 'MemID';
@@ -2006,7 +1880,7 @@ function isCanEdit($WebID = null, $plugin = '', $CateID = '', $ColName = '', $Co
 
     if (!empty($WebID) and $isMyWeb) {
         return true;
-    } elseif ($isAdmin) {
+    } elseif ($_SESSION['tad_web_adm']) {
         return true;
     } elseif ($ColName and $ColSN) {
         $mem = is_assistant($WebID, $plugin, $CateID, $ColName, $ColSN);
@@ -2044,6 +1918,7 @@ function isCanEdit($WebID = null, $plugin = '', $CateID = '', $ColName = '', $Co
 function chk_self_web($WebID, $other = null)
 {
     global $isMyWeb, $MyWebs;
+
     if (!$isMyWeb and $MyWebs) {
         redirect_header($_SERVER['PHP_SELF'] . "?op=WebID={$MyWebs[0]}&op=edit_form", 3, _MD_TCW_AUTO_TO_HOME);
     } elseif (!$isMyWeb) {

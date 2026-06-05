@@ -1,6 +1,6 @@
-<{if $all_content}>
-    <{if $isAdmin}>
-        <{$delete_tad_web_notice_func}>
+<{if $all_content|default:false}>
+    <{if $smarty.session.tad_web_adm|default:false}>
+        <{$delete_tad_web_notice_func|default:''}>
     <{/if}>
 
     <div id="tad_web_notice_save_msg"></div>
@@ -20,7 +20,7 @@
                     <!--通知日期-->
                     <{$smarty.const._MA_TADWEB_NOTICEDATE}>
                 </th>
-                <{if $isAdmin}>
+                <{if $smarty.session.tad_web_adm|default:false}>
                     <th><{$smarty.const._TAD_FUNCTION}></th>
                 <{/if}>
             </tr>
@@ -31,7 +31,7 @@
                 <tr id="tr_<{$data.NoticeID}>">
                     <td>
                         <!--通知標題-->
-                        <a href="<{$action}>?NoticeID=<{$data.NoticeID}>"><{$data.NoticeTitle}></a>
+                        <a href="<{$action|default:''}>?NoticeID=<{$data.NoticeID}>"><{$data.NoticeTitle}></a>
                     </td>
 
                     <td>
@@ -44,10 +44,10 @@
                         <{$data.NoticeDate}>
                     </td>
 
-                    <{if $isAdmin}>
+                    <{if $smarty.session.tad_web_adm|default:false}>
                         <td>
-                            <a href="javascript:delete_tad_web_notice_func(<{$data.NoticeID}>);" class="btn btn-sm btn-danger"><{$smarty.const._TAD_DEL}></a>
-                            <a href="<{$xoops_url}>/modules/tad_web/admin/notice.php?op=tad_web_notice_form&NoticeID=<{$data.NoticeID}>" class="btn btn-sm btn-warning"><{$smarty.const._TAD_EDIT}></a>
+                            <a href="javascript:delete_tad_web_notice_func(<{$data.NoticeID}>);" class="btn btn-sm btn-danger"><i class="fa fa-trash" aria-hidden="true"></i> <{$smarty.const._TAD_DEL}></a>
+                            <a href="<{$xoops_url}>/modules/tad_web/admin/notice.php?op=tad_web_notice_form&NoticeID=<{$data.NoticeID}>" class="btn btn-sm btn-warning"><i class="fa fa-pencil" aria-hidden="true"></i>  <{$smarty.const._TAD_EDIT}></a>
                             <img src="<{$xoops_url}>/modules/tadtools/treeTable/images/updown_s.png" style="cursor: s-resize;margin:0px 4px;" alt="<{$smarty.const._TAD_SORTABLE}>" title="<{$smarty.const._TAD_SORTABLE}>">
                         </td>
                     <{/if}>
@@ -57,17 +57,17 @@
     </table>
 
 
-    <{if $isAdmin}>
+    <{if $smarty.session.tad_web_adm|default:false}>
         <div class="text-right text-end">
-            <a href="<{$xoops_url}>/modules/tad_web/admin/notice.php?op=tad_web_notice_form" class="btn btn-info"><{$smarty.const._TAD_ADD}></a>
+            <a href="<{$xoops_url}>/modules/tad_web/admin/notice.php?op=tad_web_notice_form" class="btn btn-info"><i class="fa fa-square-plus" aria-hidden="true"></i>  <{$smarty.const._TAD_ADD}></a>
         </div>
     <{/if}>
 
-    <{$bar}>
+    <{$bar|default:''}>
 <{else}>
-    <{if $isAdmin}>
-        <div class="jumbotron text-center">
-            <a href="<{$xoops_url}>/modules/tad_web/admin/notice.php?op=tad_web_notice_form" class="btn btn-info"><{$smarty.const._TAD_ADD}></a>
+    <{if $smarty.session.tad_web_adm|default:false}>
+        <div class="jumbotron bg-light p-5 rounded-lg m-3 text-center">
+            <a href="<{$xoops_url}>/modules/tad_web/admin/notice.php?op=tad_web_notice_form" class="btn btn-info"><i class="fa fa-square-plus" aria-hidden="true"></i>  <{$smarty.const._TAD_ADD}></a>
         </div>
     <{/if}>
 <{/if}>

@@ -1,21 +1,20 @@
 <?php
+use Xmf\Request;
+use XoopsModules\Tadtools\Utility;
 require_once __DIR__ . '/header.php';
 
-$start = empty($_REQUEST['start']) ? date('Y-m-01') : date('Y-m-d', strtotime($_REQUEST['start']));
-$end = empty($_REQUEST['end']) ? date('Y-m-t') : date('Y-m-d', strtotime($_REQUEST['end']));
+// 關閉除錯訊息
+header('HTTP/1.1 200 OK');
+$xoopsLogger->activated = false;
 
-if (!isset($xoopsModuleConfig)) {
-    $moduleHandler = xoops_getHandler('module');
-    $xoopsModule = $moduleHandler->getByDirname('tad_web');
-    $configHandler = xoops_getHandler('config');
-    $xoopsModuleConfig = $configHandler->getConfigsByCat(0, $xoopsModule->getVar('mid'));
-}
+$start = Request::getString('start', date("Y-m-01"));
+$d = date('t');
+$end = Request::getString('end', date("Y-m-01"), date("Y-m-$d"));
+$WebID = Request::getInt('WebID');
 
-$cal_cols = $xoopsModuleConfig['cal_cols'];
+$TadWebModuleConfig = !isset($xoopsModuleConfig) ? Utility::getXoopsModuleConfig('tad_web') : $xoopsModuleConfig;
 
-// $myEvents[0]['title'] = 'cal_cols=' . implode(',', $cal_cols);
-// $myEvents[0]['start'] = date("Y-m-d");
-// die(json_encode($myEvents));
+$cal_cols = $TadWebModuleConfig['cal_cols'];
 
 if ('homework' === $_REQUEST['CalKind']) {
     //抓取聯絡簿
@@ -60,17 +59,24 @@ if ('homework' === $_REQUEST['CalKind']) {
     }
 }
 //die(var_export($myEvents));
-echo json_encode($myEvents);
+
+// echo json_encode($myEvents, 256);
+if ($myEvents) {
+    Utility::dd($myEvents);
+} else {
+    die('[]');
+}
 
 //抓取聯絡簿
 function get_homework_event($start, $end, $WebID)
 {
     global $xoopsDB;
 
-    $andWebID = empty($WebID) ? '' : "and `WebID`='{$WebID}'";
+    $andWebID = empty($WebID) ? '' : "AND `WebID`='{$WebID}'";
     $now = date('Y-m-d H:i:s');
-    $sql = 'select HomeworkID,HomeworkTitle,toCal,WebID from ' . $xoopsDB->prefix('tad_web_homework') . " where toCal >= '$start' and toCal <= '$end' and HomeworkPostDate <= '$now' $andWebID order by toCal";
-    $result = $xoopsDB->queryF($sql) or web_error($sql, __FILE__, __LINE__);
+    $sql = 'SELECT `HomeworkID`, `HomeworkTitle`, `toCal`, `WebID` FROM `' . $xoopsDB->prefix('tad_web_homework') . '` WHERE `toCal` >= ? AND `toCal` <= ? AND `HomeworkPostDate` <= ? ' . $andWebID . ' ORDER BY `toCal`';
+    $result = Utility::query($sql, 'sss', [$start, $end, $now]) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $i = 0;
     while (list($ID, $Title, $toCal, $WebID) = $xoopsDB->fetchRow($result)) {
         $toCal = userTimeToServerTime(strtotime($toCal));
@@ -93,10 +99,10 @@ function get_news_event($start, $end, $WebID)
 {
     global $xoopsDB;
 
-    $andWebID = empty($WebID) ? '' : "and `WebID`='{$WebID}'";
+    $andWebID = empty($WebID) ? '' : "AND `WebID`='{$WebID}'";
 
-    $sql = 'select NewsID,NewsTitle,toCal,WebID from ' . $xoopsDB->prefix('tad_web_news') . " where toCal >= '$start' and toCal <= '$end' $andWebID order by toCal";
-    $result = $xoopsDB->queryF($sql) or web_error($sql, __FILE__, __LINE__);
+    $sql = 'SELECT `NewsID`, `NewsTitle`, `toCal`, `WebID` FROM `' . $xoopsDB->prefix('tad_web_news') . '` WHERE `toCal` >= ? AND `toCal` <= ? ' . $andWebID . ' ORDER BY `toCal`';
+    $result = Utility::query($sql, 'ss', [$start, $end]) or Utility::web_error($sql, __FILE__, __LINE__);
     $i = 0;
     while (list($ID, $Title, $toCal, $WebID) = $xoopsDB->fetchRow($result)) {
         $toCal = userTimeToServerTime(strtotime($toCal));
@@ -121,16 +127,16 @@ function get_all_event($start, $end, $WebID)
 
     $andWebID = '';
     if (_IS_EZCLASS) {
-        $andWebID = "and WebID='$WebID'";
+        $andWebID = "AND `WebID`='$WebID'";
     } elseif ($WebID) {
         $calendar_setup = get_plugin_setup_values($WebID, 'calendar');
         if ('1' != $calendar_setup['show_global_event']) {
-            $andWebID = "and WebID='$WebID'";
+            $andWebID = "AND `WebID`='$WebID'";
         }
     }
 
-    $sql = 'select CalendarID,CalendarName,CalendarDate,WebID from ' . $xoopsDB->prefix('tad_web_calendar') . " where CalendarDate >= '$start' and CalendarDate <= '$end' and CalendarType='all' $andWebID order by CalendarDate";
-    $result = $xoopsDB->queryF($sql) or web_error($sql, __FILE__, __LINE__);
+    $sql = 'SELECT `CalendarID`,`CalendarName`,`CalendarDate`,`WebID` FROM `' . $xoopsDB->prefix('tad_web_calendar') . '` WHERE `CalendarDate` >= ? AND `CalendarDate` <= ? AND `CalendarType`=? ' . $andWebID . ' ORDER BY `CalendarDate`';
+    $result = Utility::query($sql, 'sss', [$start, $end, 'all']) or Utility::web_error($sql, __FILE__, __LINE__);
     $i = 0;
     while (list($ID, $Title, $toCal, $WebID) = $xoopsDB->fetchRow($result)) {
         $toCal = userTimeToServerTime(strtotime($toCal));
@@ -153,10 +159,11 @@ function get_web_event($start, $end, $WebID)
 {
     global $xoopsDB;
 
-    $andWebID = empty($WebID) ? '' : "and `WebID`='{$WebID}'";
+    $andWebID = empty($WebID) ? '' : "AND `WebID`='{$WebID}'";
 
-    $sql = 'select CalendarID,CalendarName,CalendarDate,WebID from ' . $xoopsDB->prefix('tad_web_calendar') . " where CalendarDate >= '$start' and CalendarDate <= '$end' $andWebID  and CalendarType!='all' order by CalendarDate";
-    $result = $xoopsDB->queryF($sql) or web_error($sql, __FILE__, __LINE__);
+    $sql = 'SELECT `CalendarID`,`CalendarName`,`CalendarDate`,`WebID` FROM `' . $xoopsDB->prefix('tad_web_calendar') . '` WHERE `CalendarDate` >= ? AND `CalendarDate` <= ? ' . $andWebID . ' AND `CalendarType`!=? ORDER BY `CalendarDate`';
+    $result = Utility::query($sql, 'sss', [$start, $end, 'all']) or Utility::web_error($sql, __FILE__, __LINE__);
+
     $i = 0;
     while (list($ID, $Title, $toCal, $WebID) = $xoopsDB->fetchRow($result)) {
         $toCal = userTimeToServerTime(strtotime($toCal));

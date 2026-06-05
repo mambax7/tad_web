@@ -1,5 +1,5 @@
-<{if $block.op=="login"}>
-    <{if $LoginMemNickName==""}>
+<{if $block.op|default:''=="login"}>
+    <{if $LoginMemNickName|default:''==""}>
         <script type="text/javascript">
             $(document).ready(function() {
                 $("#tad_web_login").hide();
@@ -18,14 +18,14 @@
             });
         </script>
 
-        <{if $block.DefWebID}>
+        <{if $block.DefWebID|default:false}>
             <h3><{$smarty.const._MB_TCW_LOGIN}></h3>
         <{/if}>
 
         <div class="my-border">
         <form action="<{$xoops_url}>/user.php" method="post" role="form" id="xoops_login" class="form-horizontal">
             <div class="form-group row mb-3">
-                <label class="col-md-4 col-form-label text-sm-right control-label" for="uname">
+                <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label" for="uname">
                     <{$smarty.const._MB_TCW_ID}>
                 </label>
                 <div class="col-md-8">
@@ -34,7 +34,7 @@
             </div>
 
             <div class="form-group row mb-3">
-                <label class="col-md-4 col-form-label text-sm-right control-label" for="pass">
+                <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label" for="pass">
                     <{$smarty.const._MB_TCW_PASSWD}>
                 </label>
                 <div class="col-md-8">
@@ -43,10 +43,10 @@
             </div>
 
             <div class="form-group row mb-3">
-                <label class="col-md-4 col-form-label text-sm-right control-label">
+                <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label">
                 </label>
                 <div class="col-md-8 d-grid gap-2">
-                    <input type="hidden" name="xoops_redirect" value="<{$xoops_requesturi}>">
+                    <input type="hidden" name="xoops_redirect" value="<{$xoops_requesturi|default:''}>">
                     <input type="hidden" name="rememberme" value="On">
                     <input type="hidden" name="op" value="login">
                     <button type="submit" class="btn btn-primary btn-block"><{$smarty.const.TF_USER_ENTER}></button>
@@ -56,7 +56,7 @@
 
         <form action="aboutus.php" method="post" enctype="multipart/form-data" role="form" id="tad_web_login" class="form-horizontal">
             <div class="form-group row mb-3">
-                <label class="col-md-4 col-form-label text-sm-right control-label">
+                <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label">
                     <{$smarty.const._MB_TCW_MEM_UNAME}>
                 </label>
                 <div class="col-md-8 controls">
@@ -65,7 +65,7 @@
             </div>
 
             <div class="form-group row mb-3">
-                <label class="col-md-4 col-form-label text-sm-right control-label">
+                <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label">
                     <{$smarty.const._MB_TCW_MEM_PASSWD}>
                 </label>
                 <div class="col-md-8 controls">
@@ -74,15 +74,15 @@
             </div>
 
             <div class="form-group row mb-3">
-                <label class="col-md-4 col-form-label text-sm-right control-label">
+                <label class="col-md-4 col-form-label text-sm-right text-sm-end control-label">
                 </label>
                 <div class="col-md-8 d-grid gap-2">
-                    <input type="hidden" name="WebID" value="<{$WebID}>">
+                    <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
                     <input type="hidden" name="op" value="mem_login">
                     <button type="submit" class="btn btn-success btn-block"><{$smarty.const._MB_TCW_LOGIN}></button>
                 </div>
             </div>
-            <p><a href="<{$xoops_url}>/user.php?op=logout&xoops_redirect=<{$xoops_requesturi}>" class="btn btn-sm btn-danger">若無法看見「網站擁有者 OpenID 登入」請按此登出，再登入即可</a></p>
+            <p><a href="<{$xoops_url}>/user.php?op=logout&xoops_redirect=<{$xoops_requesturi|urlencode}>" class="btn btn-sm btn-danger">若無法看見「網站擁有者 OpenID 登入」請按此登出，再登入即可</a></p>
         </form>
 
         <div class="text-center">
@@ -98,50 +98,54 @@
                     <img src="<{$login.img}>" alt="<{$login.text}>" title="<{$login.text}>">
                 </a>
             <{/foreach}>
+            <{if $_IS_EZCLASS|default:false}>
+                <div class="alert alert-warning">
+                    若登入有問題，請參考：<a href="https://class.tn.edu.tw/modules/tadnews/index.php?ncsn=1&nsn=22" target="_blank">無法登入管理網站之處理方法</a>
+                </div>
+            <{/if}>
         </div>
         </div>
     <{/if}>
-<{elseif $block.op=="mem"}>
+<{elseif $block.op|default:''=="mem"}>
 
     <div class="my-border">
 
-        <{$LoginMemName}>
-        <{if $LoginMemNickName!=""}> (<{$LoginMemNickName}>) <{/if}>
+        <{$LoginMemName|default:''}>
+        <{if $LoginMemNickName|default:''!=""}> (<{$LoginMemNickName|default:''}>) <{/if}>
         <{$smarty.const._MD_TCW_HELLO}>
 
         <div class="row">
             <div class="col-md-6 d-grid gap-2">
-                <a href="<{$xoops_url}>/modules/tad_web/aboutus.php?op=mem_logout&WebID=<{$WebID}>" class="btn btn-<{$mini}> btn-warning btn-block"><{$smarty.const._MD_TCW_EXIT}></a>
+                <a href="<{$xoops_url}>/modules/tad_web/aboutus.php?op=mem_logout&WebID=<{$WebID|default:''}>" class="btn btn-<{$mini|default:''}> btn-warning btn-block"><{$smarty.const._MD_TCW_EXIT}></a>
             </div>
             <div class="col-md-6 d-grid gap-2">
-                <a href="<{$xoops_url}>/modules/tad_web/discuss.php?WebID=<{$LoginWebID}>&op=edit_form" class="btn btn-<{$mini}> btn-info btn-block"><{$smarty.const._MD_TCW_DISCUSS_ADD}></a>
+                <a href="<{$xoops_url}>/modules/tad_web/discuss.php?WebID=<{$LoginWebID|default:''}>&op=edit_form" class="btn btn-<{$mini|default:''}> btn-info btn-block"><{$smarty.const._MD_TCW_DISCUSS_ADD}></a>
             </div>
         </div>
 
     </div>
 <{else}>
-    <script type="text/javascript" src="<{$xoops_url}>/modules/tad_web/class/bootstrap-progressbar/bootstrap-progressbar.js"></script>
     <script type="text/javascript">
         $(document).ready(function() {
             $('.progress .progress-bar').progressbar({display_text: 'fill'});
         });
     </script>
-    <{if $block.DefWebID}>
+    <{if $block.DefWebID|default:false}>
         <h3><{$block.WebTitle}><small><{$smarty.const._MB_TCW_MENU}></small></h3>
     <{/if}>
-    <{if $block.defaltWebID}>
+    <{if $block.defaltWebID|default:false}>
 
         <{if $block.web_num > 1}>
-            <select class="form-control" onChange="location.href=this.value" title="Select Web">
+            <select class="form-control form-select" onChange="location.href=this.value" title="Select Web">
                 <{foreach from=$block.webs item=web}>
-                <option value="<{$web.url}>" <{if $web.WebID==$WebID}>selected<{/if}>><{$web.title}> (<{$web.name}>)</option>
+                <option value="<{$web.url}>" <{if $web.WebID==$WebID|default:''}>selected<{/if}>><{$web.title}> (<{$web.name}>)</option>
                 <{/foreach}>
             </select>
         <{/if}>
 
         <div style="margin:10px 0px;">
             <a href="<{$xoops_url}>/modules/tad_web/index.php?WebID=<{$block.defaltWebID}>">
-                &#xf015;
+                <i class="fa fa-home"></i>
                 <{$block.back_home}>
             </a>
         </div>
@@ -149,11 +153,11 @@
         <div class="text-center">
             <div class="btn-group">
                 <a href="<{$xoops_url}>/modules/tad_web/config.php?WebID=<{$block.defaltWebID}>" class="btn btn-success">
-                    <i class="fa fa-check-square-o"></i>
+                    <i class="fa fa-check-square"></i>
                     <{$smarty.const._MB_TCW_WEB_CONFIG}>
                 </a>
                 <a href="<{$xoops_url}>/modules/tad_web/block.php?WebID=<{$block.defaltWebID}>" class="btn btn-info">
-                    <i class="fa fa-check-square-o"></i>
+                    <i class="fa fa-check-square"></i>
                     <{$smarty.const._MB_TCW_WEB_BLOCK_CONFIG}>
                 </a>
                 <a href="<{$xoops_url}>/modules/tad_web/block.php?WebID=<{$block.defaltWebID}>&op=add_block" class="btn btn-info" title="<{$smarty.const._MB_TCW_BLOCK_ADD}>">
@@ -169,7 +173,7 @@
                         <tr>
                             <td>
                                 <a href="<{$xoops_url}>/modules/tad_web/<{$plugin.url}>">
-                                    <i class="fa <{$plugin.icon}>"></i>
+                                    <i class="<{if $plugin.icon|substr:0:3=='fa-'}>fa <{/if}><{$plugin.icon}>"></i>
                                     <{$plugin.title}>
                                 </a>
                             </td>
@@ -201,7 +205,7 @@
                     <{else}>
                         <tr style="background-color: #dfdfdf;">
                             <td style="background-color: #dfdfdf; color:#5f5f5f;">
-                                <i class="fa <{$plugin.icon}>"></i>
+                                <i class="<{if $plugin.icon|substr:0:3=='fa-'}>fa <{/if}><{$plugin.icon}>"></i>
                                 <{$plugin.title}>
                             </td>
                             <td colspan=3 style="background-color: #dfdfdf;">
@@ -216,17 +220,17 @@
         <div class="progress progress-striped">
             <div class="progress-bar progress-bar-<{$block.progress_color}>" role="progressbar" data-transitiongoal="<{$block.percentage}>"></div>
         </div>
-        <span title="<{$block.defaltWebID}>"><{$smarty.const._MB_TCW_USED_SPACE}></span><{$block.size}>MB/<{$block.quota}>MB (<{$block.percentage}>%)
+        <span title="<{$block.defaltWebID}>"><{$smarty.const._MB_TCW_USED_SPACE}></span><{$block.size}>MB/<{$block.quota}>MB (<a href="index.php?op=check_quota&WebID=<{$block.defaltWebID}>"><{$block.percentage}>%</a>)
 
     <{/if}>
 
     <div class="d-grid gap-2">
-        <{if $block.closed_webs}>
+        <{if $block.closed_webs|default:false}>
             <{foreach from=$block.closed_webs item=web}>
                 <a href="<{$web.url}>" class="btn btn-secondary btn-block"><{$smarty.const._MB_TCW_ENABLE}> <{$web.name}></a>
             <{/foreach}>
         <{/if}>
 
-        <a href="<{$xoops_url}>/modules/tad_web/aboutus.php?op=mem_logout&WebID=<{$WebID}>" class="btn btn-danger btn-block"><i class="fa fa-sign-out"></i> <{$smarty.const.TF_USER_EXIT}></a>
+        <a href="<{$xoops_url}>/modules/tad_web/aboutus.php?op=mem_logout&WebID=<{$WebID|default:''}>" class="btn btn-danger btn-block"><i class="fa fa-sign-out"></i> <{$smarty.const.TF_USER_EXIT}></a>
     </div>
 <{/if}>

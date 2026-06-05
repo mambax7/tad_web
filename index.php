@@ -1,15 +1,59 @@
 <?php
 use Xmf\Request;
+use XoopsModules\Tadtools\Utility;
+use XoopsModules\Tad_web\Tools as TadWebTools;
 /*-----------引入檔案區--------------*/
 require_once __DIR__ . '/header.php';
 $GLOBALS['xoopsOption']['template_main'] = 'tad_web_index.tpl';
 require_once XOOPS_ROOT_PATH . '/header.php';
+Utility::test($_COOKIE, 'cookie', 'dd');
+
+/*-----------執行動作判斷區----------*/
+$op = Request::getString('op');
+$WebID = Request::getInt('WebID');
+$NoticeID = Request::getInt('NoticeID');
+
+common_template($WebID, $web_all_config);
+
+switch ($op) {
+
+    //重新計算空間
+    case 'check_quota':
+        check_quota($WebID);
+        header("location: index.php?WebID={$WebID}");
+        exit;
+
+    //重新產生畫面
+    case 'clear_block_cache':
+        clear_block_cache($WebID);
+        header("location: index.php?WebID={$WebID}");
+        exit;
+
+    //新增資料
+    case 'notice':
+        view_notice($NoticeID);
+        break;
+
+    //預設動作
+    default:
+        if (!empty($WebID)) {
+            ClassHome($WebID);
+            $op = 'ClassHome';
+        } else {
+            list_all_class();
+            $op = 'list_all_class';
+        }
+}
+/*-----------秀出結果區--------------*/
+require_once __DIR__ . '/footer.php';
+require_once XOOPS_ROOT_PATH . '/footer.php';
+
 /*-----------function區--------------*/
 
 //首頁
 function ClassHome($WebID = '')
 {
-    global $xoopsDB, $xoopsUser, $xoopsTpl, $MyWebs, $web_all_config;
+    global $xoopsDB, $xoopsTpl, $MyWebs, $web_all_config;
 
     $web = get_tad_web($WebID);
 
@@ -36,8 +80,8 @@ function ClassHome($WebID = '')
     if (_IS_EZCLASS) {
         redis_do($WebID, 'set', '', 'WebCounter', $_SESSION['tad_web'][$WebID]['WebCounter']);
     } else {
-        $sql = 'update ' . $xoopsDB->prefix('tad_web') . " set `WebCounter` = `WebCounter` +1	where WebID ='{$WebID}'";
-        $xoopsDB->queryF($sql);
+        $sql = 'UPDATE `' . $xoopsDB->prefix('tad_web') . '` SET `WebCounter` = `WebCounter` +1 WHERE `WebID` = ?';
+        Utility::query($sql, 'i', [$WebID]);
     }
 
     $xoopsTpl->assign('MyWebs', $MyWebs);
@@ -50,7 +94,7 @@ function list_all_class()
 
     $xoopsTpl->assign('module_title', $xoopsModuleConfig['module_title']);
 
-    $web_plugin_display_arr = get_web_config('web_plugin_display_arr', 0);
+    $web_plugin_display_arr = TadWebTools::get_web_config('web_plugin_display_arr', 0);
     if (empty($web_plugin_display_arr)) {
         $show_arr = get_dir_plugins();
     } else {
@@ -68,7 +112,7 @@ function list_all_class()
         }
         if (file_exists("plugins/{$dirname}/class.php")) {
             require_once "plugins/{$dirname}/class.php";
-            $limit = get_web_config("{$dirname}_limit", 0);
+            $limit = TadWebTools::get_web_config("{$dirname}_limit", 0);
             $plugin_name = "tad_web_{$dirname}";
             $$plugin_name = new $plugin_name(0);
             $data_count[$dirname] = $$plugin_name->list_all('', $limit);
@@ -85,36 +129,3 @@ function view_notice($NoticeID = '')
     $xoopsTpl->assign('theme_display_mode', 'blank');
     $xoopsTpl->assign('blank_kind', 'content');
 }
-
-/*-----------執行動作判斷區----------*/
-$op = Request::getString('op');
-$WebID = Request::getInt('WebID');
-$NoticeID = Request::getInt('NoticeID');
-
-common_template($WebID, $web_all_config);
-
-switch ($op) {
-    //重新產生畫面
-    case 'clear_block_cache':
-        clear_block_cache($WebID);
-        header("location: index.php?WebID={$WebID}");
-        exit;
-
-    //新增資料
-    case 'notice':
-        view_notice($NoticeID);
-        break;
-
-    //預設動作
-    default:
-        if (!empty($WebID)) {
-            ClassHome($WebID);
-            $op = 'ClassHome';
-        } else {
-            list_all_class();
-            $op = 'list_all_class';
-        }
-}
-/*-----------秀出結果區--------------*/
-require_once __DIR__ . '/footer.php';
-require_once XOOPS_ROOT_PATH . '/footer.php';

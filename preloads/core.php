@@ -1,21 +1,21 @@
 <?php
 
+use XoopsModules\Tad_web\Tools as TadWebTools;
+
 defined('XOOPS_ROOT_PATH') || die('Restricted access');
 
 /**
- * Class to allow <{if $homepage}>Your code here<{/if}> in templates
+ * Class to allow <{if $homepage|default:false}>Your code here<{/if}> in templates
  * @author trabis
  */
 class Tad_WebCorePreload extends XoopsPreloadItem
 {
     public static function eventCoreHeaderStart($args)
     {
-        global $xoopsDB;
-        require_once XOOPS_ROOT_PATH . '/modules/tad_web/function_block.php';
-        $WebID = (int) $_REQUEST['WebID'];
+        $WebID = isset($_REQUEST['WebID']) ? (int) $_REQUEST['WebID'] : 0;
 
         if (!empty($WebID) and false !== mb_strpos($_SERVER['PHP_SELF'], 'modules/tad_web') and false !== mb_strpos($_SERVER['REQUEST_URI'], '?WebID=')) {
-            $defalut_theme = get_web_config('defalut_theme', $WebID, '');
+            $defalut_theme = TadWebTools::get_web_config('defalut_theme', $WebID, '');
             if (empty($defalut_theme)) {
                 $defalut_theme = 'for_tad_web_theme';
             }

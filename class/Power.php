@@ -12,7 +12,7 @@ $this->Power    = new  Power($WebID);
 //權限設定
 $power_form = $this->Power->power_menu('read', "NewsID", $NewsID,'news');
 $xoopsTpl->assign('power_form', $power_form);
-<{$power_form}>
+<{$power_form|default:''}>
 
 //檢查權限（列出全部）
 $power = $this->Power->check_power("read", "NewsID", $NewsID,'');
@@ -95,7 +95,6 @@ class Power
     //權限選單
     public function power_menu($power_name = 'read', $col_name = '', $col_sn = '', $plugin = '')
     {
-        global $xoopsDB;
         if ('read' === $power_name) {
             $label = _MD_TCW_POWER_FOR;
         }
@@ -109,11 +108,11 @@ class Power
         $menu = '
         <!--權限設定-->
         <div class="form-group row mb-3" style="background: #FCECDB;">
-            <label class="col-sm-' . $this->label_col_md . ' col-form-label text-sm-right control-label">
+            <label class="col-sm-' . $this->label_col_md . ' col-form-label text-sm-right text-sm-end control-label">
                 ' . $label . '
             </label>
             <div class="col-sm-' . $this->menu_col_md . '">
-                <select name="' . $power_name . '" class="form-control">
+                <select name="' . $power_name . '" class="form-control form-select">
                     <option value="">' . _MD_TCW_POWER_FOR_ALL . '</option>
                     <option value="users" ' . $select_users . '>' . _MD_TCW_POWER_FOR_USERS . '</option>
                     <option value="web_users" ' . $select_web_users . '>' . _MD_TCW_POWER_FOR_WEB_USERS . '</option>
@@ -129,29 +128,12 @@ class Power
     //新增資料到tad_web_power中
     public function save_power($col_name = '', $col_sn = '', $power_name = '', $power_val = '', $plugin = '')
     {
-        global $xoopsDB, $xoopsUser;
+        global $xoopsDB;
 
-        $myts = \MyTextSanitizer::getInstance();
-        $power_name = $myts->addSlashes($power_name);
-        $power_val = empty($power_val) ? $myts->addSlashes($_REQUEST[$power_name]) : $myts->addSlashes($power_val);
-        $plugin = $myts->addSlashes($plugin);
+        $power_val = empty($power_val) ? $_REQUEST[$power_name] : $power_val;
 
-        $sql = 'replace into `' . $xoopsDB->prefix('tad_web_power') . "` (
-        `WebID`,
-        `col_name`,
-        `col_sn`,
-        `power_name`,
-        `power_val`,
-        `plugin`
-        ) values(
-        '{$this->WebID}',
-        '{$col_name}',
-        '{$col_sn}',
-        '{$power_name}',
-        '{$power_val}',
-        '{$plugin}'
-        )";
-        $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'REPLACE INTO `' . $xoopsDB->prefix('tad_web_power') . '` ( `WebID`, `col_name`, `col_sn`, `power_name`, `power_val`, `plugin` ) VALUES( ?, ?, ?, ?, ?, ? )';
+        Utility::query($sql, 'isisss', [$this->WebID, $col_name, $col_sn, $power_name, $power_val, $plugin]) or Utility::web_error($sql, __FILE__, __LINE__);
         clear_power_cache($this->WebID);
     }
 
@@ -160,11 +142,13 @@ class Power
     {
         global $xoopsDB;
         $power_cache_file = XOOPS_VAR_PATH . "/tad_web/{$this->WebID}/web_power.json";
+
         if (\file_exists($power_cache_file)) {
             $powers = \json_decode(\file_get_contents($power_cache_file), true);
         } else {
-            $sql = 'select col_name, col_sn, power_val from `' . $xoopsDB->prefix('tad_web_power') . "` where `WebID` = '{$this->WebID}' and `power_name`='$power_name'";
-            $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+            $sql = 'SELECT `col_name`, `col_sn`, `power_val` FROM `' . $xoopsDB->prefix('tad_web_power') . '` WHERE `WebID` =? AND `power_name` =?';
+            $result = Utility::query($sql, 'is', [$this->WebID, $power_name]) or Utility::web_error($sql, __FILE__, __LINE__);
+
             while (list($col_name, $col_sn, $power_val) = $xoopsDB->fetchRow($result)) {
                 $powers[$col_name][$col_sn] = $power_val;
             }
@@ -172,12 +156,14 @@ class Power
             \file_put_contents($power_cache_file, \json_encode($powers, 256));
         }
 
-        if ($def_col_sn) {
-            return $powers[$def_col_name][$def_col_sn];
-        } else {
-            return $powers[$def_col_name];
+        if (isset($powers[$def_col_name])) {
+            if (!empty($def_col_sn)) {
+                return $powers[$def_col_name][$def_col_sn];
+            } else {
+                return $powers[$def_col_name];
+            }
         }
-
+        return [];
     }
 
     //刪除tad_web_power某筆資料資料
@@ -185,9 +171,9 @@ class Power
     {
         global $xoopsDB;
 
-        $and_plugin = $plugin ? "and `plugin`='{$plugin}'" : '';
-        $sql = 'delete from `' . $xoopsDB->prefix('tad_web_power') . "` where `WebID` = '{$this->WebID}' and col_name='{$col_name}' and col_sn='{$col_sn}' and power_name='{$power_name}' $and_plugin";
-        $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $and_plugin = $plugin ? "AND `plugin`='{$plugin}'" : '';
+        $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_power') . '` WHERE `WebID` = ? AND `col_name` = ? AND `col_sn` = ? AND `power_name` = ? ' . $and_plugin;
+        Utility::query($sql, 'isis', [$this->WebID, $col_name, $col_sn, $power_name]) or Utility::web_error($sql, __FILE__, __LINE__);
         clear_power_cache($this->WebID);
     }
 
@@ -195,13 +181,31 @@ class Power
     public function check_power($power_name = '', $col_name = '', $col_sn = '', $plugin = '')
     {
         global $isMyWeb, $LoginWebID, $xoopsUser;
-        $power = $this->get_power($power_name, $col_name, $col_sn, $plugin);
+        // if ($col_sn == 68459) {
+        //     Utility::test("$power_name, $col_name, $col_sn, $plugin", 'power', 'dd');
+        // }
 
+        $power = $this->get_power($power_name, $col_name, $col_sn, $plugin);
+        // if ($col_sn == 68459) {
+        //     Utility::test($power, 'power', 'dd');
+        // }
         if ('users' === $power and !$xoopsUser and empty($LoginWebID)) {
+            // if ($col_sn == 68459) {
+            //     Utility::test('users', 'power', 'die');
+            // }
+
             return false;
         } elseif ('web_users' === $power and $LoginWebID != $this->WebID and !$isMyWeb) {
+            // if ($col_sn == 68459) {
+            //     Utility::test('web_users', 'power', 'die');
+            // }
+
             return false;
         } elseif ('web_admin' === $power and !$isMyWeb) {
+            // if ($col_sn == 68459) {
+            //     Utility::test('web_admin', 'power', 'die');
+            // }
+
             return false;
         }
 

@@ -12,8 +12,10 @@ use XoopsModules\Tad_web\WebCate;
 class tad_web_action
 {
     public $WebID = 0;
-    public $web_cate;
+    public $WebCate;
     public $setup;
+    public $Power;
+    public $tags;
 
     public function __construct($WebID)
     {
@@ -30,6 +32,7 @@ class tad_web_action
         global $xoopsDB, $xoopsTpl, $TadUpFiles, $MyWebs, $isMyWeb, $plugin_menu_var;
 
         $power = $this->Power->check_power("read", "CateID", $CateID, 'action');
+        // Utility::test($power, 'power', 'dd');
         if (!$power) {
             redirect_header("action.php?WebID={$this->WebID}", 3, _MD_TCW_NOW_READ_POWER);
         }
@@ -100,7 +103,7 @@ class tad_web_action
         $bar = $PageBar['bar'];
         $sql = $PageBar['sql'];
         $total = $PageBar['total'];
-
+        Utility::test($sql, 'sql', 'die');
         $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
 
         $main_data = [];
@@ -118,10 +121,12 @@ class tad_web_action
             }
             //檢查權限
             $power = $this->Power->check_power('read', 'ActionID', $ActionID);
+            // Utility::test($power, 'power', 'dd');
             if (!$power) {
                 continue;
             }
 
+            // Utility::test($CateID, 'power', 'dd');
             $power = $this->Power->check_power("read", "CateID", $CateID, 'action');
             if (!$power) {
                 continue;
@@ -178,9 +183,9 @@ class tad_web_action
     {
         global $xoopsDB;
 
-        $sql = "select image_url from `" . $xoopsDB->prefix("tad_web_action_gphotos") . "`
-        where `ActionID` = '{$ActionID}' order by rand() limit 0,1";
-        $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'SELECT `image_url` FROM `' . $xoopsDB->prefix('tad_web_action_gphotos') . '` WHERE `ActionID` =? ORDER BY RAND() LIMIT 0,1';
+        $result = Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
         list($image_url) = $xoopsDB->fetchRow($result);
         return $image_url;
     }
@@ -202,8 +207,8 @@ class tad_web_action
 
         $ActionID = (int) $ActionID;
 
-        $sql = 'select * from ' . $xoopsDB->prefix('tad_web_action') . " where ActionID='{$ActionID}'";
-        $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_action') . '` WHERE `ActionID`=?';
+        $result = Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
         $all = $xoopsDB->fetchArray($result);
 
         //以下會產生這些變數： $ActionID ,$CateID , $ActionName , $ActionDesc , $ActionDate , $ActionPlace , $uid , $WebID , $ActionCount, $gphoto_link
@@ -268,7 +273,6 @@ class tad_web_action
 
         $SweetAlert = new SweetAlert();
         $SweetAlert->render('delete_action_func', "action.php?op=delete&WebID={$this->WebID}&ActionID=", 'ActionID');
-        $xoopsTpl->assign('fb_comments', fb_comments($this->setup['use_fb_comments']));
 
         $xoopsTpl->assign('tags', $this->tags->list_tags('ActionID', $ActionID, 'action'));
     }
@@ -276,18 +280,10 @@ class tad_web_action
     //列出所有tad_gphotos_images資料
     public function tad_gphotos_list($ActionID = '', $url = "", $key = "")
     {
-        global $xoopsDB, $xoopsTpl, $xoopsModuleConfig;
+        global $xoopsDB;
 
-        $myts = \MyTextSanitizer::getInstance();
-
-        $sql = "select * from `" . $xoopsDB->prefix("tad_web_action_gphotos") . "` where `ActionID`='$ActionID'";
-
-        // $PageBar = Utility::getPageBar($sql, 48, 10);
-        // $bar = $PageBar['bar'];
-        // $sql = $PageBar['sql'];
-        // $total = $PageBar['total'];
-
-        $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_action_gphotos') . '` WHERE `ActionID`=?';
+        $result = Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
         $gphotos_arr = array();
         $i = 0;
@@ -307,9 +303,15 @@ class tad_web_action
     //tad_web_action編輯表單
     public function edit_form($ActionID = '')
     {
-        global $xoopsDB, $xoopsUser, $MyWebs, $isMyWeb, $xoopsTpl, $TadUpFiles, $plugin_menu_var;
+        global $xoTheme, $xoopsUser, $xoopsTpl, $TadUpFiles, $plugin_menu_var;
 
-        chk_self_web($this->WebID, $_SESSION['isAssistant']['action']);
+        $xoTheme->addScript('modules/tadtools/My97DatePicker/WdatePicker.js');
+        if (isset($_SESSION['isAssistant']['action'])) {
+            chk_self_web($this->WebID, $_SESSION['isAssistant']['action']);
+        } else {
+            chk_self_web($this->WebID);
+        }
+
         get_quota($this->WebID);
 
         //抓取預設值
@@ -342,7 +344,7 @@ class tad_web_action
         $xoopsTpl->assign('ActionPlace', $ActionPlace);
 
         //設定「uid」欄位預設值
-        $user_uid = ($xoopsUser) ? $xoopsUser->getVar('uid') : '';
+        $user_uid = ($xoopsUser) ? $xoopsUser->uid() : '';
         $uid = (!isset($DBV['uid'])) ? $user_uid : $DBV['uid'];
         $xoopsTpl->assign('uid', $uid);
 
@@ -394,34 +396,32 @@ class tad_web_action
         if (isset($_SESSION['isAssistant']['action'])) {
             $uid = $WebOwnerUid;
         } else {
-            $uid = $xoopsUser->getVar('uid');
+            $uid = $xoopsUser->uid();
         }
 
-        $myts = \MyTextSanitizer::getInstance();
-        $ActionName = $myts->addSlashes($_POST['ActionName']);
-        $ActionDesc = $myts->addSlashes($_POST['ActionDesc']);
-        $ActionPlace = $myts->addSlashes($_POST['ActionPlace']);
-        $ActionDate = $myts->addSlashes($_POST['ActionDate']);
-        $tag_name = $myts->addSlashes($_POST['tag_name']);
-        $newCateName = $myts->addSlashes($_POST['newCateName']);
+        $ActionName = (string) $_POST['ActionName'];
+        $ActionDesc = (string) $_POST['ActionDesc'];
+        $ActionPlace = (string) $_POST['ActionPlace'];
+        $ActionDate = (string) $_POST['ActionDate'];
+        $tag_name = (string) $_POST['tag_name'];
+        $newCateName = (string) $_POST['newCateName'];
         $ActionCount = (int) $_POST['ActionCount'];
-        $gphoto_link = $myts->addSlashes($_POST['gphoto_link']);
+        $gphoto_link = (string) $_POST['gphoto_link'];
         $CateID = (int) $_POST['CateID'];
         $WebID = (int) $_POST['WebID'];
         if ($newCateName != '') {
             $CateID = $this->WebCate->save_tad_web_cate($CateID, $newCateName);
         }
-        $sql = 'insert into ' . $xoopsDB->prefix('tad_web_action') . "
-        (`CateID`,`ActionName` , `ActionDesc` , `ActionDate` , `ActionPlace` , `uid` , `WebID` , `ActionCount`, `gphoto_link`)
-        values('{$CateID}' ,'{$ActionName}' , '{$ActionDesc}' , '{$ActionDate}' , '{$ActionPlace}' , '{$uid}' , '{$WebID}' , '{$ActionCount}', '{$gphoto_link}')";
-        $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'INSERT INTO `' . $xoopsDB->prefix('tad_web_action') . '` (`CateID`, `ActionName`, `ActionDesc`, `ActionDate`, `ActionPlace`, `uid`, `WebID`, `ActionCount`, `gphoto_link`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        Utility::query($sql, 'issssiiis', [$CateID, $ActionName, $ActionDesc, $ActionDate, $ActionPlace, $uid, $WebID, $ActionCount, $gphoto_link]) or Utility::web_error($sql, __FILE__, __LINE__);
 
         //取得最後新增資料的流水編號
         $ActionID = $xoopsDB->getInsertId();
-        save_assistant_post('action', $CateID, 'ActionID', $ActionID);
+        save_assistant_post($WebID, 'action', $CateID, 'ActionID', $ActionID);
 
         if ($gphoto_link != '') {
             require 'vendor/autoload.php';
+            require 'class/Crawler.php';
             $crawler = new Crawler();
             $album = $crawler->getAlbum($gphoto_link);
             foreach ($album['images'] as $photo) {
@@ -446,28 +446,15 @@ class tad_web_action
     //新增Google Photo相片
     public function insert_gphotos($ActionID, $photo = [])
     {
-        global $xoopsDB, $xoopsUser;
+        global $xoopsDB;
 
-        $myts = \MyTextSanitizer::getInstance();
-        $image_id = $myts->addSlashes($photo['id']);
+        $image_id = $photo['id'];
         $image_width = (int) $photo['width'];
         $image_height = (int) $photo['height'];
-        $image_url = $myts->addSlashes($photo['url']);
+        $image_url = $photo['url'];
 
-        $sql = "insert into `" . $xoopsDB->prefix("tad_web_action_gphotos") . "` (
-            `ActionID`,
-            `image_id`,
-            `image_width`,
-            `image_height`,
-            `image_url`
-        ) values(
-            '{$ActionID}',
-            '{$image_id}',
-            '{$image_width}',
-            '{$image_height}',
-            '{$image_url}'
-        )";
-        $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'INSERT INTO `' . $xoopsDB->prefix('tad_web_action_gphotos') . '` ( `ActionID`, `image_id`, `image_width`, `image_height`, `image_url` ) VALUES (?, ?, ?, ?, ?)';
+        Utility::query($sql, 'isiis', [$ActionID, $image_id, $image_width, $image_height, $image_url]) or Utility::web_error($sql, __FILE__, __LINE__, true);
     }
 
     //更新tad_web_action某一筆資料
@@ -475,34 +462,27 @@ class tad_web_action
     {
         global $xoopsDB, $TadUpFiles;
 
-        $myts = \MyTextSanitizer::getInstance();
-        $ActionName = $myts->addSlashes($_POST['ActionName']);
-        $ActionDesc = $myts->addSlashes($_POST['ActionDesc']);
-        $ActionPlace = $myts->addSlashes($_POST['ActionPlace']);
-        $ActionDate = $myts->addSlashes($_POST['ActionDate']);
-        $gphoto_link = $myts->addSlashes($_POST['gphoto_link']);
-        $tag_name = $myts->addSlashes($_POST['tag_name']);
-        $newCateName = $myts->addSlashes($_POST['newCateName']);
-        $read = $myts->addSlashes($_POST['read']);
+        $ActionName = (string) $_POST['ActionName'];
+        $ActionDesc = (string) $_POST['ActionDesc'];
+        $ActionPlace = (string) $_POST['ActionPlace'];
+        $ActionDate = (string) $_POST['ActionDate'];
+        $gphoto_link = (string) $_POST['gphoto_link'];
+        $tag_name = (string) $_POST['tag_name'];
+        $newCateName = (string) $_POST['newCateName'];
+        $read = (string) $_POST['read'];
         $CateID = (int) $_POST['CateID'];
         $WebID = (int) $_POST['WebID'];
         if ($newCateName != '') {
             $CateID = $this->WebCate->save_tad_web_cate($CateID, $newCateName);
         }
 
+        $and_uid = '';
         if (!is_assistant($this->WebID, 'action', $CateID, 'ActionID', $ActionID)) {
-            $anduid = onlyMine();
+            $and_uid = onlyMine();
         }
 
-        $sql = 'update ' . $xoopsDB->prefix('tad_web_action') . " set
-        `CateID` = '{$CateID}' ,
-        `ActionName` = '{$ActionName}' ,
-        `ActionDesc` = '{$ActionDesc}' ,
-        `ActionDate` = '{$ActionDate}' ,
-        `ActionPlace` = '{$ActionPlace}',
-        `gphoto_link` = '{$gphoto_link}'
-        where ActionID='$ActionID' $anduid";
-        $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'UPDATE `' . $xoopsDB->prefix('tad_web_action') . '` SET `CateID` = ?, `ActionName` = ?, `ActionDesc` = ?, `ActionDate` = ?, `ActionPlace` = ?, `gphoto_link` = ? WHERE `ActionID`=? ' . $and_uid;
+        Utility::query($sql, 'isssssi', [$CateID, $ActionName, $ActionDesc, $ActionDate, $ActionPlace, $gphoto_link, $ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
         // $subdir = isset($this->WebID) ? "/{$this->WebID}" : "";
         // $TadUpFiles->set_dir('subdir', $subdir);
@@ -521,14 +501,16 @@ class tad_web_action
     public function delete($ActionID = '')
     {
         global $xoopsDB, $TadUpFiles;
-        $sql = 'select CateID from ' . $xoopsDB->prefix('tad_web_action') . " where ActionID='$ActionID'";
-        $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'SELECT `CateID` FROM `' . $xoopsDB->prefix('tad_web_action') . '` WHERE `ActionID`=?';
+        $result = Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
         list($CateID) = $xoopsDB->fetchRow($result);
+
+        $and_uid = '';
         if (!is_assistant($this->WebID, 'action', $CateID, 'ActionID', $ActionID)) {
-            $anduid = onlyMine();
+            $and_uid = onlyMine();
         }
-        $sql = 'delete from ' . $xoopsDB->prefix('tad_web_action') . " where ActionID='$ActionID' $anduid";
-        $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_action') . '` WHERE `ActionID`=? ' . $and_uid;
+        Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
         // $subdir = isset($this->WebID) ? "/{$this->WebID}" : "";
         // $TadUpFiles->set_dir('subdir', $subdir);
@@ -544,10 +526,10 @@ class tad_web_action
     //刪除所有資料
     public function delete_all()
     {
-        global $xoopsDB, $TadUpFiles;
+        global $xoopsDB;
         $allCateID = [];
-        $sql = 'select ActionID,CateID from ' . $xoopsDB->prefix('tad_web_action') . " where WebID='{$this->WebID}'";
-        $result = $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'SELECT `ActionID`, `CateID` FROM `' . $xoopsDB->prefix('tad_web_action') . '` WHERE `WebID`=?';
+        $result = Utility::query($sql, 'i', [$this->WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
         while (list($ActionID, $CateID) = $xoopsDB->fetchRow($result)) {
             $this->delete($ActionID);
             $allCateID[$CateID] = $CateID;
@@ -562,8 +544,8 @@ class tad_web_action
     public function get_total()
     {
         global $xoopsDB;
-        $sql = 'select count(*) from ' . $xoopsDB->prefix('tad_web_action') . " where WebID='{$this->WebID}'";
-        $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'SELECT COUNT(*) FROM `' . $xoopsDB->prefix('tad_web_action') . '` WHERE `WebID`=?';
+        $result = Utility::query($sql, 'i', [$this->WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
         list($count) = $xoopsDB->fetchRow($result);
         return $count;
     }
@@ -576,15 +558,15 @@ class tad_web_action
         if (_IS_EZCLASS) {
             $ActionCount = redis_do($this->WebID, 'get', 'action', "ActionCount:$ActionID");
             if (empty($ActionCount)) {
-                $sql = 'select ActionCount from ' . $xoopsDB->prefix('tad_web_action') . " where ActionID='$ActionID'";
-                $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+                $sql = 'SELECT `ActionCount` FROM `' . $xoopsDB->prefix('tad_web_action') . '` WHERE `ActionID`=?';
+                $result = Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
                 list($ActionCount) = $xoopsDB->fetchRow($result);
                 redis_do($this->WebID, 'set', 'action', "ActionCount:$ActionID", $ActionCount);
             }
             return redis_do($this->WebID, 'incr', 'action', "ActionCount:$ActionID");
         } else {
-            $sql = 'update ' . $xoopsDB->prefix('tad_web_action') . " set `ActionCount`=`ActionCount`+1 where `ActionID`='{$ActionID}'";
-            $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+            $sql = 'UPDATE `' . $xoopsDB->prefix('tad_web_action') . '` SET `ActionCount`=`ActionCount`+1 WHERE `ActionID`=?';
+            Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
         }
     }
 
@@ -596,8 +578,8 @@ class tad_web_action
             return;
         }
 
-        $sql = 'select * from ' . $xoopsDB->prefix('tad_web_action') . " where ActionID='$ActionID'";
-        $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'SELECT * FROM `' . $xoopsDB->prefix('tad_web_action') . '` WHERE `ActionID`=?';
+        $result = Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
         $data = $xoopsDB->fetchArray($result);
 
         if (_IS_EZCLASS) {
@@ -697,13 +679,13 @@ class tad_web_action
     //匯出資料
     public function export_data($start_date = '', $end_date = '', $CateID = '')
     {
-        global $xoopsDB, $xoopsTpl, $TadUpFiles, $MyWebs;
-        $andCateID = empty($CateID) ? '' : "and `CateID`='$CateID'";
-        $andStart = empty($start_date) ? '' : "and ActionDate >= '{$start_date}'";
-        $andEnd = empty($end_date) ? '' : "and ActionDate <= '{$end_date}'";
+        global $xoopsDB;
+        $andCateID = empty($CateID) ? '' : "AND `CateID`='$CateID'";
+        $andStart = empty($start_date) ? '' : "AND `ActionDate` >= '{$start_date}'";
+        $andEnd = empty($end_date) ? '' : "AND `ActionDate` <= '{$end_date}'";
 
-        $sql = 'select ActionID,ActionName,ActionDate,CateID from ' . $xoopsDB->prefix('tad_web_action') . " where WebID='{$this->WebID}' {$andStart} {$andEnd} {$andCateID} order by ActionDate";
-        $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'SELECT `ActionID`, `ActionName`, `ActionDate`, `CateID` FROM `' . $xoopsDB->prefix('tad_web_action') . '` WHERE `WebID`=? ' . $andStart . ' ' . $andEnd . ' ' . $andCateID . ' ORDER BY `ActionDate`';
+        $result = Utility::query($sql, 'i', [$this->WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
 
         $i = 0;
         $main_data = [];
@@ -717,4 +699,40 @@ class tad_web_action
         }
         return $main_data;
     }
+
+    // 重新擷取
+    public function re_get($ActionID)
+    {
+        global $xoopsDB;
+        if (isset($_SESSION['isAssistant']['action'])) {
+            chk_self_web($this->WebID, $_SESSION['isAssistant']['action']);
+        } else {
+            chk_self_web($this->WebID);
+        }
+
+        get_quota($this->WebID);
+
+        if (empty($ActionID)) {
+            redirect_header($_SERVER['PHP_SELF'], 3, "Missing ActionID");
+        }
+
+        $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_action_gphotos') . '` WHERE `ActionID` = ?';
+        Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
+        $sql = 'SELECT `gphoto_link` FROM `' . $xoopsDB->prefix('tad_web_action') . '` WHERE `ActionID` = ?';
+        $result = Utility::query($sql, 'i', [$ActionID]) or Utility::web_error($sql, __FILE__, __LINE__);
+
+        list($gphoto_link) = $xoopsDB->fetchRow($result);
+
+        if ($gphoto_link) {
+            require 'vendor/autoload.php';
+            require 'class/Crawler.php';
+            $crawler = new Crawler();
+            $album = $crawler->getAlbum($gphoto_link);
+            foreach ($album['images'] as $photo) {
+                $this->insert_gphotos($ActionID, $photo);
+            }
+        }
+    }
+
 }

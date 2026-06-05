@@ -1,4 +1,4 @@
-<{if $isMyWeb}>
+<{if $isMyWeb|default:false}>
     <{if $op=="delete_tad_web_chk"}>
         <h2><{$smarty.const._MD_TCW_WILL_DEL}></h2>
         <form action="config.php" method="post" class="myForm">
@@ -10,16 +10,16 @@
                 <{foreach from=$plugins item=plugin}>
                     <tr>
                         <td>
-                            <a href="<{$plugin.dirname}>.php?WebID=<{$WebID}>" target="_blank"><{$plugin.PluginTitle}></a>
+                            <a href="<{$plugin.dirname}>.php?WebID=<{$WebID|default:''}>" target="_blank"><{$plugin.PluginTitle}></a>
                         </td>
                         <td style="text-align: center;">
-                            <a href="<{$plugin.dirname}>.php?WebID=<{$WebID}>" target="_blank"><{$plugin.total}></a>
+                            <a href="<{$plugin.dirname}>.php?WebID=<{$WebID|default:''}>" target="_blank"><{$plugin.total}></a>
                         </td>
                     </tr>
                 <{/foreach}>
             </table>
             <input type="hidden" name="op" value="delete_tad_web">
-            <input type="hidden" name="WebID" value="<{$WebID}>">
+            <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
             <button type="submit" class="btn btn-danger"><{$smarty.const._MD_TCW_DELETE}></button>
         </form>
     <{else}>
@@ -37,7 +37,7 @@
 
                 $('#sort').sortable({ opacity: 0.6, cursor: 'move', update: function() {
                     var order = $(this).sortable('serialize');
-                    $.post('save_sort.php?WebID=<{$WebID}>', order, function(theResponse){
+                    $.post('save_sort.php?WebID=<{$WebID|default:''}>', order, function(theResponse){
                         $('#save_msg').html(theResponse);
                     });
                 }
@@ -61,31 +61,31 @@
             <div class="resp-tabs-container vert">
 
                 <div>
-                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_1.tpl"}>
+                    <{include file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_1.tpl"}>
                 </div>
 
                 <div>
-                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_2.tpl"}>
+                    <{include file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_2.tpl"}>
                 </div>
 
                 <div>
-                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_3.tpl"}>
+                    <{include file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_3.tpl"}>
                 </div>
 
                 <div>
-                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_4.tpl"}>
+                    <{include file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_4.tpl"}>
                 </div>
 
                 <div>
-                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_5.tpl"}>
+                    <{include file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_5.tpl"}>
                 </div>
 
                 <div>
-                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_6.tpl"}>
+                    <{include file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_6.tpl"}>
                 </div>
 
                 <div>
-                    <{includeq file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_7.tpl"}>
+                    <{include file="$xoops_rootpath/modules/tad_web/templates/tad_web_config_tab_7.tpl"}>
                 </div>
             </div>
         </div>

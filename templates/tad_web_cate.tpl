@@ -7,7 +7,7 @@
             });
         }});
 
-        $(".act").change(function() {
+        $(".act").on('change', function() {
             var this_op=$(this).val();
             var cate_id=$(this).attr("id");
             if(this_op=="rename"){
@@ -53,14 +53,14 @@
 
 <h2><a href="<{$plugin.url}>"><{$plugin.title}></a><{$smarty.const._MD_TCW_CATE_TOOLS}></h2>
 
-<{if $cate_arr}>
+<{if $cate_arr|default:false}>
     <form action="cate.php" method="post" id="myForm" enctype="multipart/form-data" role="form" class="form-horizontal">
-        <{$cate_menu_form}>
+        <{$cate_menu_form|default:''}>
         <hr>
 
         <{if $isMyWeb and $WebID}>
             <div class="form-group row mb-3">
-                <label class="col-md-3 col-form-label text-sm-right control-label">
+                <label class="col-md-3 col-form-label text-sm-right text-sm-end control-label">
                     <{$plugin.title}><{$smarty.const._MD_TCW_NEW_CATE}>
                 </label>
                 <div class="col-md-4">
@@ -69,7 +69,7 @@
             </div>
         <{/if}>
 
-        <{if $cate_opt_arr}>
+        <{if $cate_opt_arr|default:false}>
             <div class="alert alert-info"><{$smarty.const._MD_TCW_CATE_NOTE}></div>
             <div id="save_msg"></div>
             <div id="sort">
@@ -87,7 +87,7 @@
                                 <span class="text-danger"><i class="fa fa-times-circle" aria-hidden="true" data-toggle="tooltip" title="<{$smarty.const._MD_TCW_CATE_UNABLED}>"></i></span>
                             <{/if}>
 
-                            <{if $cate.assistant.MemName}>
+                            <{if $cate.assistant.MemName|default:false}>
                                 <i class="fa fa-male" alt="<{$cate.assistant.MemName}>" title="<{$cate.assistant.MemName}>"></i>
                             <{/if}>
 
@@ -96,17 +96,17 @@
                             <{/if}>
 
                             <{if $cate.power=='users'}>
-                                <span class="badge badge-info"><{$smarty.const._MD_TCW_POWER_FOR_USERS}></span>
+                                <span class="badge badge-info bg-info"><{$smarty.const._MD_TCW_POWER_FOR_USERS}></span>
                             <{elseif $cate.power=='web_users'}>
-                                <span class="badge badge-warning"><{$smarty.const._MD_TCW_POWER_FOR_WEB_USERS}></span>
+                                <span class="badge badge-warning bg-warning"><{$smarty.const._MD_TCW_POWER_FOR_WEB_USERS}></span>
                             <{elseif $cate.power=='web_admin'}>
-                                <span class="badge badge-danger"><{$smarty.const._MD_TCW_POWER_FOR_WEB_ADMIN}></span>
+                                <span class="badge badge-danger bg-danger"><{$smarty.const._MD_TCW_POWER_FOR_WEB_ADMIN}></span>
                             <{else}>
-                                <span class="badge badge-success"><{$smarty.const._MD_TCW_POWER_FOR_ALL}></span>
+                                <span class="badge badge-success bg-success"><{$smarty.const._MD_TCW_POWER_FOR_ALL}></span>
                             <{/if}>
 
                             <div>
-                                <a href="<{$ColName}>.php?WebID=<{$WebID}>&CateID=<{$cate.CateID}>" <{if $cate.ColName=="aboutus"}>style="color: #a0062c;"<{/if}>><{$cate.CateName}></a>
+                                <a href="<{$ColName|default:''}>.php?WebID=<{$WebID|default:''}>&CateID=<{$cate.CateID}>" <{if $cate.ColName=="aboutus"}>style="color: #a0062c;"<{/if}>><{$cate.CateName}></a>
                             </div>
                         </label>
 
@@ -177,29 +177,29 @@
         <{/if}>
 
         <div class="text-center">
-            <input type="hidden" name="ColName" value="<{$ColName}>">
-            <input type="hidden" name="WebID" value="<{$WebID}>">
+            <input type="hidden" name="ColName" value="<{$ColName|default:''}>">
+            <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
             <input type="hidden" name="op" value="save_cate">
-            <button type="submit" class="btn btn-primary"><{$smarty.const._TAD_SAVE}></button>
+            <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-disk" aria-hidden="true"></i>  <{$smarty.const._TAD_SAVE}></button>
         </div>
     </form>
 <{else}>
-    <div class="jumbotron">
+    <div class="jumbotron bg-light p-5 rounded-lg m-3">
         <h2><a href="<{$plugin.url}>"><{$plugin.title}></a><{$smarty.const._MD_TCW_CATE_NONE}></h2>
         <{if $isMyWeb and $WebID}>
             <form action="cate.php" method="post" id="myForm" enctype="multipart/form-data" role="form" class="form-horizontal">
                 <div class="form-group row mb-3">
-                    <label class="col-md-2 col-form-label text-sm-right control-label">
+                    <label class="col-md-2 col-form-label text-sm-right text-sm-end control-label">
                         <{$smarty.const._MD_TCW_NEW_CATE}>
                     </label>
                     <div class="col-md-6">
                         <input type="text" name="newCateName" id="newCateName" class="validate[required] form-control">
                     </div>
                     <div class="col-md-4">
-                        <input type="hidden" name="ColName" value="<{$ColName}>">
-                        <input type="hidden" name="WebID" value="<{$WebID}>">
+                        <input type="hidden" name="ColName" value="<{$ColName|default:''}>">
+                        <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
                         <input type="hidden" name="op" value="save_cate">
-                        <button type="submit" class="btn btn-primary"><{$smarty.const._TAD_SAVE}></button>
+                        <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-disk" aria-hidden="true"></i>  <{$smarty.const._TAD_SAVE}></button>
                     </div>
                 </div>
             </form>

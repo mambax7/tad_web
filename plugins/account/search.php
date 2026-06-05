@@ -1,7 +1,7 @@
 <?php
 use XoopsModules\Tad_web\Power;
 //搜尋
-function account_search($WebID, $queryarray, $limit = 10)
+function account_search($WebID, $queryarray, $limit = 10, $andor = 'AND')
 {
     global $xoopsDB;
 
@@ -15,9 +15,8 @@ function account_search($WebID, $queryarray, $limit = 10)
     $date_col = 'AccountDate';
     $content_col = 'AccountDesc';
 
-    $myts = \MyTextSanitizer::getInstance();
     foreach ($queryarray as $k => $v) {
-        $arr[$k] = $myts->addSlashes($v);
+        $arr[$k] = $xoopsDB->escape($v);
     }
     $queryarray = $arr;
 

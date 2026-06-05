@@ -1,10 +1,10 @@
 <script type="text/javascript">
     $(document).ready(function(){
-        $('#Youtube').change(function() {
+        $('#Youtube').on('change', function() {
         $('#VideoName').val($('#Youtube').val());
         $.post("link_ajax.php", { url: $('#Youtube').val()},
             function(data) {
-            var obj = $.parseJSON(data);
+            var obj = JSON.parse(data);
             $('#VideoName').val(obj.title);
             $('#VideoDesc').val(obj.description);
             });
@@ -14,7 +14,7 @@
         $('#LinkGet').click(function() {
         $.post("link_ajax.php", { url: $('#Youtube').val()},
             function(data) {
-            var obj = $.parseJSON(data);
+            var obj = JSON.parse(data);
             $('#VideoName').val(obj.title);
             $('#VideoDesc').val(obj.description);
             });
@@ -27,12 +27,12 @@
 <div class="my-border">
     <form action="video.php" method="post" id="myForm" enctype="multipart/form-data" role="form" class="form-horizontal">
         <!--分類-->
-        <{$cate_menu_form}>
+        <{$cate_menu_form|default:''}>
 
         <!--影片網址-->
         <div class="form-group row mb-3">
             <div class="col-md-10">
-                <input type="text" name="Youtube" value="<{$Youtube}>" id="Youtube" class="validate[required] form-control" placeholder="<{$smarty.const._MD_TCW_VIDEOYOUTUBE}>">
+                <input type="text" name="Youtube" value="<{$Youtube|default:''}>" id="Youtube" class="validate[required] form-control" placeholder="<{$smarty.const._MD_TCW_VIDEOYOUTUBE}>">
             </div>
             <div class="col-md-2">
                 <button type="button" class="btn btn-success" id="LinkGet"><{$smarty.const._MD_TCW_LINK_AUTO_GET}></button>
@@ -43,7 +43,7 @@
         <!--影片名稱-->
         <div class="form-group row mb-3">
             <div class="col-md-12">
-                <input type="text" name="VideoName" value="<{$VideoName}>" id="VideoName" class="validate[required] form-control" placeholder="<{$smarty.const._MD_TCW_VIDEONAME}>">
+                <input type="text" name="VideoName" value="<{$VideoName|default:''}>" id="VideoName" class="validate[required] form-control" placeholder="<{$smarty.const._MD_TCW_VIDEONAME}>">
             </div>
         </div>
 
@@ -51,19 +51,19 @@
         <!--影片說明-->
         <div class="form-group row mb-3">
             <div class="col-md-12">
-                <textarea name="VideoDesc" rows=4 id="VideoDesc"  class="form-control" placeholder="<{$smarty.const._MD_TCW_VIDEODESC}>"><{$VideoDesc}></textarea>
+                <textarea name="VideoDesc" rows=4 id="VideoDesc"  class="form-control" placeholder="<{$smarty.const._MD_TCW_VIDEODESC}>"><{$VideoDesc|default:''}></textarea>
             </div>
         </div>
 
-        <{$tags_form}>
+        <{$tags_form|default:''}>
 
         <div class="text-center">
             <!--影片編號-->
-            <input type="hidden" name="VideoID" value="<{$VideoID}>">
+            <input type="hidden" name="VideoID" value="<{$VideoID|default:''}>">
             <!--所屬團隊-->
-            <input type="hidden" name="WebID" value="<{$WebID}>">
-            <input type="hidden" name="op" value="<{$next_op}>">
-            <button type="submit" class="btn btn-primary"><{$smarty.const._TAD_SAVE}></button>
+            <input type="hidden" name="WebID" value="<{$WebID|default:''}>">
+            <input type="hidden" name="op" value="<{$next_op|default:''}>">
+            <button type="submit" class="btn btn-primary"><i class="fa fa-floppy-disk" aria-hidden="true"></i>  <{$smarty.const._TAD_SAVE}></button>
         </div>
     </form>
 </div>

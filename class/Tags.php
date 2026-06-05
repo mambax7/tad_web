@@ -24,12 +24,12 @@ $sql = "select distinct a.* from " . $xoopsDB->prefix("tad_web_news") . " as a l
 
 //show_one 取得標籤
 $xoopsTpl->assign("tags", $this->tags->list_tags("NewsID", $NewsID, 'news'));
-<{if $tags}><li><{$tags}></li><{/if}>
+<{if $tags|default:false}><li><{$tags|default:''}></li><{/if}>
 
 //edit_form 標籤設定
 $tags_form = $this->tags->tags_menu("NewsID", $NewsID);
 $xoopsTpl->assign('tags_form', $tags_form);
-<{$tags_form}>
+<{$tags_form|default:''}>
 
 //儲存標籤
 $this->tags->save_tags("NewsID", $NewsID, $_POST['tag_name'],$_POST['tags']);
@@ -100,14 +100,14 @@ class Tags
             $tags_select .= "
             <label class='checkbox-inline'>
                 <input type='checkbox' name='tags[]' value='{$tag}' {$checked}>
-                {$tag} <span class='badge badge-info'>{$count}</span>
+                {$tag} <span class='badge badge-info bg-info'>{$count}</span>
             </label>";
         }
 
         $menu = '
         <!--標籤設定-->
         <div class="form-group row mb-3">
-            <label class="col-sm-' . $this->label_col_md . ' col-form-label text-sm-right control-label">
+            <label class="col-sm-' . $this->label_col_md . ' col-form-label text-sm-right text-sm-end control-label">
               ' . _MD_TCW_TAGS . '
             </label>
             <div class="col-sm-' . $this->menu_col_md . '">
@@ -119,7 +119,7 @@ class Tags
         if ($tags_select) {
             $menu .= '
             <div class="form-group row mb-3">
-                <label class="col-sm-' . $this->label_col_md . ' col-form-label text-sm-right control-label"></label>
+                <label class="col-sm-' . $this->label_col_md . ' col-form-label text-sm-right text-sm-end control-label"></label>
                 <div class="col-sm-' . $this->menu_col_md . '">
                     <div class="alert alert-info">
                         ' . $tags_select . '
@@ -135,67 +135,43 @@ class Tags
     //新增資料到tad_web_tags中
     public function save_tags($col_name = '', $col_sn = '', $tag_name = '', $tags = [])
     {
-        global $xoopsDB, $xoopsUser;
+        global $xoopsDB;
 
-        $myts = \MyTextSanitizer::getInstance();
-        $sql = 'delete from `' . $xoopsDB->prefix('tad_web_tags') . "` where `WebID`='{$this->WebID}' and `col_name`='{$col_name}' and `col_sn`='{$col_sn}'";
-        $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_tags') . '` WHERE `WebID`=? AND `col_name`=? AND `col_sn`=?';
+        Utility::query($sql, 'isi', [$this->WebID, $col_name, $col_sn]) or Utility::web_error($sql, __FILE__, __LINE__);
         if ($tags) {
             foreach ($tags as $tag) {
                 $tag = trim($tag);
-                $tag = $myts->addSlashes($tag);
                 if (empty($tag)) {
                     continue;
                 }
-                $sql = 'insert into `' . $xoopsDB->prefix('tad_web_tags') . "` (
-                    `WebID`,
-                    `col_name`,
-                    `col_sn`,
-                    `tag_name`
-                ) values(
-                    '{$this->WebID}',
-                    '{$col_name}',
-                    '{$col_sn}',
-                    '{$tag}'
-                )";
-                $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+                $sql = 'INSERT INTO `' . $xoopsDB->prefix('tad_web_tags') . '` ( `WebID`, `col_name`, `col_sn`, `tag_name` ) VALUES( ?, ?, ?, ? )';
+                Utility::query($sql, 'isis', [$this->WebID, $col_name, $col_sn, $tag]) or Utility::web_error($sql, __FILE__, __LINE__);
             }
         }
 
         $tags = explode(',', $tag_name);
         foreach ($tags as $tag) {
             $tag = trim($tag);
-            $tag = $myts->addSlashes($tag);
             if (empty($tag)) {
                 continue;
             }
-            $sql = 'replace into `' . $xoopsDB->prefix('tad_web_tags') . "` (
-              `WebID`,
-              `col_name`,
-              `col_sn`,
-              `tag_name`
-            ) values(
-              '{$this->WebID}',
-              '{$col_name}',
-              '{$col_sn}',
-              '{$tag}'
-            )";
-            $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+            $sql = 'REPLACE INTO `' . $xoopsDB->prefix('tad_web_tags') . '` ( `WebID`, `col_name`, `col_sn`, `tag_name` ) VALUES ( ?, ?, ?, ? )';
+            Utility::query($sql, 'isis', [$this->WebID, $col_name, $col_sn, $tag]) or Utility::web_error($sql, __FILE__, __LINE__);
         }
     }
 
     //取得tad_web_tags資料陣列
     public function list_tags($col_name = '', $col_sn = '', $plugin = '')
     {
-        global $xoopsDB;
         $tags_arr = $this->get_tags($col_name, $col_sn);
         $list_tags = '';
-        foreach ($tags_arr as $tag => $count) {
-            // $tags_link[] = "<a href='{$plugin}.php?WebID={$this->WebID}&tag={$tag}'>{$tag}</a>";
-            $tags_link[] = "<a href='tag.php?WebID={$this->WebID}&tag={$tag}'>{$tag}</a>";
+        if ($tags_arr) {
+            foreach ($tags_arr as $tag => $count) {
+                $tags_link[] = "<a href='tag.php?WebID={$this->WebID}&tag={$tag}'>{$tag}</a>";
+            }
+            $list_tags = implode(' , ', $tags_link);
         }
-        $list_tags = implode(' , ', $tags_link);
-
         return $list_tags;
     }
 
@@ -204,11 +180,10 @@ class Tags
     {
         global $xoopsDB;
         $tags_arr = [];
-        $and_col_name = empty($col_name) ? '' : "and `col_name`='{$col_name}'";
-        $and_col_sn = empty($col_sn) ? '' : "and `col_sn`='{$col_sn}'";
-        $sql = 'select tag_name , count(*) from `' . $xoopsDB->prefix('tad_web_tags') . "` where `WebID` = '{$this->WebID}' {$and_col_name} {$and_col_sn}  group by tag_name";
-
-        $result = $xoopsDB->query($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $and_col_name = empty($col_name) ? '' : "AND `col_name`='{$col_name}'";
+        $and_col_sn = empty($col_sn) ? '' : "AND `col_sn`='{$col_sn}'";
+        $sql = 'SELECT `tag_name`, COUNT(*) FROM `' . $xoopsDB->prefix('tad_web_tags') . '` WHERE `WebID` =? ' . $and_col_name . ' ' . $and_col_sn . ' GROUP BY `tag_name`';
+        $result = Utility::query($sql, 'i', [$this->WebID]) or Utility::web_error($sql, __FILE__, __LINE__);
         while (list($tag_name, $count) = $xoopsDB->fetchRow($result)) {
             $tags_arr[$tag_name] = $count;
         }
@@ -220,9 +195,9 @@ class Tags
     public function delete_tags($col_name = '', $col_sn = '', $tag_name = '')
     {
         global $xoopsDB;
-        $and_tag_name = empty($tag_name) ? '' : "and `tag_name`='{$tag_name}'";
+        $and_tag_name = empty($tag_name) ? '' : "AND `tag_name`='{$tag_name}'";
 
-        $sql = 'delete from `' . $xoopsDB->prefix('tad_web_tags') . "` where `WebID` = '{$this->WebID}' and col_name='{$col_name}' and col_sn='{$col_sn}' {$and_tag_name}";
-        $xoopsDB->queryF($sql) or Utility::web_error($sql, __FILE__, __LINE__);
+        $sql = 'DELETE FROM `' . $xoopsDB->prefix('tad_web_tags') . '` WHERE `WebID` = ? AND `col_name` = ? AND `col_sn` = ?' . $and_tag_name;
+        Utility::query($sql, 'isi', [$this->WebID, $col_name, $col_sn]) or Utility::web_error($sql, __FILE__, __LINE__);
     }
 }

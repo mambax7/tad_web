@@ -1,16 +1,16 @@
 <{if $web_display_mode=='index' and $file_data}>
     <{if "$xoops_rootpath/uploads/tad_web/0/image/`$dirname`.png"|file_exists}>
-        <a href="<{$xoops_url}>/modules/tad_web/<{$dirname}>.php"><img src="<{$xoops_url}>/uploads/tad_web/0/image/<{$dirname}>.png" alt="<{$files.PluginTitle}>"></a>
+        <a href="<{$xoops_url}>/modules/tad_web/<{$dirname|default:''}>.php"><img src="<{$xoops_url}>/uploads/tad_web/0/image/<{$dirname|default:''}>.png" alt="<{$files.PluginTitle}>"></a>
     <{else}>
         <h3><a href="<{$xoops_url}>/modules/tad_web/files.php"><{$files.PluginTitle}></a></h3>
     <{/if}>
 <{elseif $web_display_mode=='index_plugin'}>
-    <h2><a href="<{$xoops_url}>/modules/tad_web/">&#xf015;</a> <{$files.PluginTitle}></h2>
+    <h2><a href="<{$xoops_url}>/modules/tad_web/"><i class="fa fa-home"></i></a> <{$files.PluginTitle}></h2>
 <{elseif $web_display_mode=='home_plugin'}>
-    <h2><a href="index.php?WebID=<{$WebID}>">&#xf015;</a> <{$files.PluginTitle}></h2>
+    <h2><a href="index.php?WebID=<{$WebID|default:''}>"><i class="fa fa-home"></i></a> <{$files.PluginTitle}></h2>
 <{/if}>
 
-<{if $file_data}>
+<{if $file_data|default:false}>
     <table class="footable table common_table">
         <thead>
             <tr>
@@ -21,17 +21,17 @@
                 <{/if}>
             </tr>
         </thead>
-        <{foreach item=file from=$file_data}>
+        <{foreach from=$file_data item=file}>
             <tr>
                 <td>
                     <div style="word-wrap:break-word;">
                         <{if isset($file.cate.CateID)}>
-                            <span class="badge badge-info"><a href="files.php?WebID=<{$file.WebID}>&CateID=<{$file.cate.CateID}>" style="color: #FFFFFF;"><{$file.cate.CateName}></a></span>
+                            <span class="badge badge-info bg-info"><a href="files.php?WebID=<{$file.WebID}>&CateID=<{$file.cate.CateID}>" style="color: #FFFFFF;"><{$file.cate.CateName}></a></span>
                         <{/if}>
                         <{$file.showurl}>
                         <{*if $file.isCanEdit*}>
-                        <{if ($WebID && $isMyWeb) || $isAdmin || ($file.cate.CateID && $file.cate.CateID == $smarty.session.isAssistant.file)}>
-                            <a href="javascript:delete_files_func(<{$file.fsn}>);" class="text-danger"><i class="fa fa-trash-o"></i><span class="sr-only visually-hidden">delete</span></a>
+                        <{if ($WebID && $isMyWeb) || $smarty.session.tad_web_adm|default:false || (isset($smarty.session.isAssistant.file) && isset($file.cate.CateID) && $file.cate.CateID == $smarty.session.isAssistant.file)}>
+                            <a href="javascript:delete_files_func(<{$file.fsn}>);" class="text-danger"><i class="fa fa-trash"></i><span class="sr-only visually-hidden">delete</span></a>
                             <a href="files.php?WebID=<{$file.WebID}>&op=edit_form&fsn=<{$file.fsn}>" class="text-warning"><i class="fa fa-pencil"></i><span class="sr-only visually-hidden">edit</span></a>
                         <{/if}>
                     </div>
@@ -47,9 +47,9 @@
         <{/foreach}>
     </table>
 
-    <{if $file_data}>
+    <{if $file_data|default:false}>
         <{if $web_display_mode=='index_plugin' or $web_display_mode=='home_plugin'}>
-            <{$bar}>
+            <{$bar|default:''}>
         <{/if}>
     <{/if}>
 
@@ -57,12 +57,12 @@
         <{if $web_display_mode=='index'}>
             <a href="files.php" class="btn btn-primary <{if $web_display_mode=='index'}>btn-sm btn-xs<{/if}>"><i class="fa fa-info-circle"></i> <{$smarty.const._MD_TCW_MORE}><{$smarty.const._MD_TCW_FILES_SHORT}></a>
         <{elseif $web_display_mode=='home' or $FilesDefCateID}>
-            <a href="files.php?WebID=<{$WebID}>" class="btn btn-primary <{if $web_display_mode=='index'}>btn-sm btn-xs<{/if}>"><i class="fa fa-info-circle"></i> <{$smarty.const._MD_TCW_MORE}><{$smarty.const._MD_TCW_FILES_SHORT}></a>
+            <a href="files.php?WebID=<{$WebID|default:''}>" class="btn btn-primary <{if $web_display_mode=='index'}>btn-sm btn-xs<{/if}>"><i class="fa fa-info-circle"></i> <{$smarty.const._MD_TCW_MORE}><{$smarty.const._MD_TCW_FILES_SHORT}></a>
         <{/if}>
 
 
         <{if $isMyWeb and $WebID}>
-            <a href="files.php?WebID=<{$WebID}>&op=edit_form" class="btn btn-info <{if $web_display_mode=='index'}>btn-sm btn-xs<{/if}>"><i class="fa fa-plus"></i> <{$smarty.const._MD_TCW_ADD}><{$smarty.const._MD_TCW_FILES_SHORT}></a>
+            <a href="files.php?WebID=<{$WebID|default:''}>&op=edit_form" class="btn btn-info <{if $web_display_mode=='index'}>btn-sm btn-xs<{/if}>"><i class="fa fa-plus"></i> <{$smarty.const._MD_TCW_ADD}><{$smarty.const._MD_TCW_FILES_SHORT}></a>
         <{/if}>
     </div>
 <{/if}>

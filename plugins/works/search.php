@@ -1,6 +1,6 @@
 <?php
 //搜尋
-function works_search($WebID, $queryarray, $limit = 10)
+function works_search($WebID, $queryarray, $limit = 10, $andor = 'AND')
 {
     global $xoopsDB;
 
@@ -11,9 +11,8 @@ function works_search($WebID, $queryarray, $limit = 10)
     $date_col = 'WorksDate';
     $content_col = 'WorkDesc';
 
-    $myts = \MyTextSanitizer::getInstance();
     foreach ($queryarray as $k => $v) {
-        $arr[$k] = $myts->addSlashes($v);
+        $arr[$k] = $xoopsDB->escape($v);
     }
     $queryarray = $arr;
 
